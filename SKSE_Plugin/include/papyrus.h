@@ -1,76 +1,19 @@
 #pragma once
-#include "form.h"
 #include <mutex>
+#include "Services.h"
 
 std::mutex papyrusMutex;
 
 RE::TESForm* Create(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
-    try {
-        if (!baseItem) {
-            return nullptr;
-        }
-
-        auto* newForm = AddForm(baseItem);
-
-        if (newForm) {
-            printInt("new form id", newForm->GetFormID());
-        }
-
-        return newForm;
-
-    } catch (const std::exception&) {
-        return nullptr;
-    }
+    return Services::Create(baseItem);
 }
 
 void Track(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
-    try {
-        if (!baseItem) {
-            return;
-        }
-        bool found = false;
-        EachFormRef([&](FormRecord* item) {
-            if (item->Match(baseItem)) {
-                print("reference reused");
-                if (item->deleted) {
-                    item->UndeleteReference(baseItem);
-                }
-                found = true;
-                return false;
-            }
-            if (item->Match(baseItem)) {
-                found = true;
-                return false;
-            }
-            return true;
-        });
-        if (!found) {
-            AddFormRef(FormRecord::CreateReference(baseItem));
-        }
-
-    } catch (const std::exception&) {
-    }
+    Services::Track(baseItem);
 }
 
 void UnTrack(RE::StaticFunctionTag*, RE::TESForm* form) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
-    try {
-        if (!form) {
-            return;
-        }
-
-        EachFormRef([&](FormRecord* item) {
-            if (item->Match(form)) {
-                item->deleted = true;
-                return false;
-            }
-            return true;
-        });
-
-    } catch (const std::exception&) {
-    }
+    Services::UnTrack(form);
 }
 
 
@@ -133,27 +76,7 @@ void CopyMagicEffects(RE::StaticFunctionTag*, RE::TESForm* from, RE::TESForm* to
 
 
 void Dispose(RE::StaticFunctionTag*, RE::TESForm* form) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
-    try {
-        if (!form) {
-            return;
-        }
-
-        EachFormData([&](FormRecord* item) {
-            if (!item->deleted && item->Match(form)) {
-                item->deleted = true;
-                if (item->actualForm) {
-                    item->actualForm->SetDelete(true);
-                }
-                return false;
-            }
-            return true;
-        });
-
-
-    }
-    catch (const std::exception&) {
-    }
+    Services::Dispose(form);
 }
 
 void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {

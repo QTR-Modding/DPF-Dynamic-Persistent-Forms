@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 #include <string>
 #include <fstream>
 #include <format>
@@ -40,7 +40,7 @@ class FileLogger {
 
 };
 
-FileLogger* FileLogger::instance = nullptr;
+inline FileLogger* FileLogger::instance = nullptr;
 std::string FileLogger::fileName = "";
 
 void EnableLog(std::string filename, const std::string& message) {

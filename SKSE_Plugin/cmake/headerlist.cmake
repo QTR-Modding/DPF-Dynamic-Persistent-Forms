@@ -9,4 +9,5 @@ set(headers ${headers}
 	include/form_record_serializer.h
 	include/persistence.h
 	include/papyrus.h
+	include/Services.h
 )

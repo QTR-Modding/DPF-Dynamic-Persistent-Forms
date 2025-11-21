@@ -4,37 +4,81 @@
 #include "persistence.h"
 #include "papyrus.h"
 
+#include "Services.h"
+
+
+class DPFInterfaceImpl : public DPF::IDynamicPersistentForms {
+public:
+    static DPFInterfaceImpl* GetSingleton() {
+        static DPFInterfaceImpl instance;
+        return &instance;
+    }
+    uint32_t GetVersion() const override {
+        return DPF::InterfaceVersion;
+    }
+
+    RE::TESForm* Create(RE::TESForm* baseItem) override {
+        return Services::Create(baseItem);
+    }
+
+    void Dispose(RE::TESForm* form) override {
+        Services::Dispose(form);
+    }
+
+    void Track(RE::TESForm* item) override {
+        Services::Track(item);
+    }
+
+    void UnTrack(RE::TESForm* item) override {
+        Services::UnTrack(item);
+    }
+
+};
+
+extern "C" __declspec(dllexport) void* GetDPFAPI() {
+    return DPFInterfaceImpl::GetSingleton();
+}
+
+void OnMessage(SKSE::MessagingInterface::Message* message) {
+    if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+        ReadFirstFormIdFromESP();
+        LoadCache();
+        print("loaded");
+    }
+    else if (message->type == SKSE::MessagingInterface::kNewGame) {
+        std::filesystem::remove("DynamicPersistentFormsCache.bin");
+        while (formRef.size() > 0) {
+            delete formRef.back();
+            formRef.pop_back();
+        }
+        while (formData.size() > 0) {
+            if (formData.back()) {
+                if (formData.back()->actualForm) {
+                    formData.back()->actualForm->SetDelete(true);
+                }
+            }
+            delete formData.back();
+            formData.pop_back();
+        }
+        ResetId();
+        print("new game");
+    }
+
+    // Adicione isso para suportar requisições da API
+    if (message->type == SKSE::MessagingInterface::kPostLoad) {
+        // Opcional: Despachar evento avisando que DPF está pronto
+    }
+}
+
+
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     SKSE::Init(skse);
 
     //EnableLog("DynamicPersistentFormsLog.txt", "DPF 2");
 
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
+    SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
 
-    SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
-        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            ReadFirstFormIdFromESP();
-            LoadCache();
-            print("loaded");
-        } else if (message->type == SKSE::MessagingInterface::kNewGame) {
-            std::filesystem::remove("DynamicPersistentFormsCache.bin");
-            while (formRef.size() > 0) {
-                delete formRef.back();
-                formRef.pop_back();
-            }
-            while (formData.size() > 0) {
-                if (formData.back()) {
-                    if (formData.back()->actualForm) {
-                        formData.back()->actualForm->SetDelete(true);
-                    }
-                }
-                delete formData.back();
-                formData.pop_back();
-            }
-            ResetId();
-            print("new game");
-        }
-    });
 
     auto serialization = SKSE::GetSerializationInterface();
     serialization->SetUniqueID('DPF1');
