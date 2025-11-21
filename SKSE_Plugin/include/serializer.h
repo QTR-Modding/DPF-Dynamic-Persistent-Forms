@@ -1,6 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <stack>
+#include <sstream>
+#include <functional>
+#include <string>
+#include <cstring>
 
 class StreamWrapper {
     private:
@@ -11,13 +16,9 @@ class StreamWrapper {
             stream.clear();
             stream.seekg(0);
         }
-        void SeekBeginning() {
-            stream.seekg(0);
-        }
+        void SeekBeginning() { stream.seekg(0); }
         template <class T>
-        void Write(T value) {
-            stream.write(reinterpret_cast<const char*>(&value), sizeof(T));
-        }
+        void Write(T value) { stream.write(reinterpret_cast<const char*>(&value), sizeof(T)); }
         template <class T>
         T Read() {
             T result;
@@ -27,15 +28,14 @@ class StreamWrapper {
             return T();
         }
         uint32_t Size() {
-            std::streampos currentPosition = stream.tellg();
+            const std::streampos currentPosition = stream.tellg();
             stream.seekg(0, std::ios::end);
-            size_t size = stream.tellg();
+            const size_t size = stream.tellg();
             stream.seekg(currentPosition);
             return static_cast<uint32_t>(size);
         }
-
         void WriteDown(std::function<void(uint32_t)> const& start, std::function<void(char)> const& step) {
-            auto size = Size();
+            const auto size = Size();
             start(size);
             SeekBeginning();
             for (size_t i = 0; i < size; i++) {
@@ -45,7 +45,7 @@ class StreamWrapper {
         }
         void ReadOut(std::function<uint32_t()> start, std::function<char()> const& step) {
             Clear();
-            uint32_t arrayLength = start();
+            const uint32_t arrayLength = start();
             for (size_t i = 0; i < arrayLength; i++) {
                 stream.put(step());
             }
@@ -128,7 +128,7 @@ public:
                 [&]() { return ReadSource<char>(); }
             );
         } else {
-            auto parent = ctx.top();
+            const auto parent = ctx.top();
             ctx.push(new StreamWrapper());
             ctx.top()->ReadOut(
                 [&]() { return parent->Read<uint32_t>(); }, 
@@ -139,18 +139,18 @@ public:
 
     void finishReadingSection() {
         if (ctx.size() > 0) {
-            auto top = ctx.top();
+            const auto top = ctx.top();
             ctx.pop();
             delete top;
         }
     }
     template<class T>
     T* ReadFormRef() {
-        auto item = ReadFormId();
+        const auto item = ReadFormId();
         if (item == 0) {
             return nullptr;
         }
-        auto form = RE::TESForm::LookupByID(item);
+        const auto form = RE::TESForm::LookupByID(item);
         if (!form) {
             return nullptr;
         }
@@ -158,7 +158,7 @@ public:
     }
 
     RE::TESForm* ReadFormRef() {
-        auto item = ReadFormId();
+        const auto item = ReadFormId();
         if (item == 0) {
             return nullptr;
         }
@@ -175,7 +175,7 @@ public:
 
     RE::FormID ReadFormId() {
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
-        char fileRef = Read<char>();
+        const char fileRef = Read<char>();
         print("fileref", fileRef);
 
         if (fileRef == 0) {
@@ -183,13 +183,13 @@ public:
         }
 
         if (fileRef == 1) {
-            uint32_t dynamicId = Read<uint32_t>();
+            const uint32_t dynamicId = Read<uint32_t>();
             return dynamicId + (dynamicModId << 24);
         }
         else if(fileRef == 2){
-            std::string fileName = ReadString();
-            uint32_t localId = Read<uint32_t>();
-            auto formId = dataHandler->LookupFormID(localId, fileName);
+            const std::string fileName = ReadString();
+            const uint32_t localId = Read<uint32_t>();
+            const auto formId = dataHandler->LookupFormID(localId, fileName);
             print("localid", formId);
             print("modname", fileName);
             print("id", formId);
@@ -211,22 +211,22 @@ public:
 
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
 
-        auto modId = (formId >> 24) & 0xff;
+        const auto modId = (formId >> 24) & 0xff;
 
         print("mid", modId);
         if (modId == dynamicModId) {
             print("dynamic");
-            auto localId = formId & 0xFFFFFF;
+            const auto localId = formId & 0xFFFFFF;
             Write<char>(1);
             Write<uint32_t>(localId);
         }
         else if (modId == 0xfe) {
             print("light");
-            auto lightId = (formId >> 12) & 0xFFF;
-            auto file = dataHandler->LookupLoadedLightModByIndex(lightId);
+            const auto lightId = (formId >> 12) & 0xFFF;
+            const auto file = dataHandler->LookupLoadedLightModByIndex(lightId);
             if (file) {
-                auto localId = formId & 0xFFF;
-                std::string fileName = file->fileName;
+                const auto localId = formId & 0xFFF;
+                const std::string fileName = file->fileName;
                 Write<char>(2);
                 WriteString(fileName.c_str());
                 Write<uint32_t>(localId);
@@ -237,10 +237,10 @@ public:
         } 
         else {
             print("regular");
-            auto file = dataHandler->LookupLoadedModByIndex(modId);
+            const auto file = dataHandler->LookupLoadedModByIndex(modId);
             if (file) {
-                auto localId = formId & 0xFFFFFF;
-                std::string fileName = file->fileName;
+                const auto localId = formId & 0xFFFFFF;
+                const std::string fileName = file->fileName;
                 Write<char>(2);
                 WriteString(fileName.c_str());
                 Write<uint32_t>(localId);
@@ -254,7 +254,7 @@ public:
     }
 
     char* ReadString() {
-        size_t arrayLength = Read<uint32_t>();
+        const size_t arrayLength = Read<uint32_t>();
         char* result = new char[arrayLength+1];
         for (size_t i = 0; i < arrayLength; i++) {
             result[i] = Read<char>();
@@ -264,10 +264,10 @@ public:
     }
 
     void WriteString(const char* string) {
-        size_t arrayLength = strlen(string);
+        const size_t arrayLength = strlen(string);
         Write<uint32_t>(static_cast<uint32_t>(arrayLength));
         for (size_t i = 0; i < arrayLength; i++) {
-            char item = string[i];
+            const char item = string[i];
             Write<char>(item);
         }
     }

@@ -1,11 +1,10 @@
 #pragma once
+#include <cstdint>
+
 class FormRecord {
     private:
-     FormRecord() {
-
-    }
-    FormRecord(RE::TESForm *_actualForm) {
-
+     FormRecord() {}
+     FormRecord(RE::TESForm *_actualForm) {
         actualForm = _actualForm;
     }
     public:
@@ -14,7 +13,7 @@ class FormRecord {
         if (!_actualForm) {
             return nullptr;
         }
-        auto result = new FormRecord(_actualForm);
+        const auto result = new FormRecord(_actualForm);
         result->formType = formType;
         result->formId = formId;
         return result;
@@ -23,12 +22,12 @@ class FormRecord {
         if (!_actualForm) {
             return nullptr;
         }
-        auto result = new FormRecord(_actualForm);
+        const auto result = new FormRecord(_actualForm);
         result->formId = _actualForm->GetFormID();
         return result;
     }
     static FormRecord *CreateDeleted(RE::FormID formId) {
-        auto result = new FormRecord();
+        const auto result = new FormRecord();
         result->formId = formId;
         result->deleted = true;
         return result;
@@ -40,7 +39,6 @@ class FormRecord {
         deleted = false;
         actualForm = _actualForm;
         formId = _actualForm->GetFormID();
-        return;
     }
     void Undelete(RE::TESForm *_actualForm, RE::FormType _formType) {
         if (!_actualForm) {
@@ -51,7 +49,6 @@ class FormRecord {
         deleted = false;
     }
 
-
     bool Match(RE::TESForm *matchForm) {
         if (!matchForm) {
             return false;
@@ -59,19 +56,15 @@ class FormRecord {
         return matchForm->GetFormID() == formId;
     }
 
-    bool Match(RE::FormID matchForm) {
-        return matchForm == formId;
-    }
-    bool HasModel() {
-        return modelForm != nullptr; 
-    }
+    bool Match(RE::FormID matchForm) { return matchForm == formId; }
+    bool HasModel() { return modelForm != nullptr; }
+
     RE::TESForm *baseForm = nullptr;
     RE::TESForm *actualForm = nullptr;
     RE::TESForm *modelForm = nullptr;
     bool deleted = false;
-    RE::FormType formType;
-    RE::FormID formId;
-
+    RE::FormType formType{};
+    RE::FormID formId{};
 };
 
 

@@ -1,5 +1,8 @@
 #pragma once
-#include <unordered_set>
+#include <vector>
+#include <functional>
+#include <cstdint>
+
 std::vector<FormRecord*> formData;
 std::vector<FormRecord*> formRef;
 
@@ -24,21 +27,19 @@ void AddFormRef(FormRecord* item) {
 }
 
 void EachFormData(std::function<bool(FormRecord*)> const& iteration) {
-    for (auto item : formData) {
+    for (const auto item : formData) {
         if (!iteration(item)) {
             return;
         }
     }
-    return;
 }
 
 void EachFormRef(std::function<bool(FormRecord*)> const& iteration) {
-    for (auto item : formRef) {
+    for (const auto item : formRef) {
         if (!iteration(item)) {
             return;
         }
     }
-    return;
 }
 
 
@@ -64,7 +65,7 @@ void ResetId() {
 void ReadFirstFormIdFromESP() {
     const auto dataHandler = RE::TESDataHandler::GetSingleton();
 
-    auto id = dataHandler->LookupFormID(0x800, "Dynamic Persistent Forms.esp");
+    const auto id = dataHandler->LookupFormID(0x800, "Dynamic Persistent Forms.esp");
 
     if (id != 0) {
         espFound = true;

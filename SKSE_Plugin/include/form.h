@@ -1,20 +1,20 @@
 #pragma once
-#include "log.cpp"
-#include "model.cpp"
+#include "form_record.h"
+#include "log.h"
+#include "model.h"
+#include <cstdint>
 
 static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target);
 static void copyFormObjectWeaponModel(RE::TESForm* source, RE::TESForm* target);
 static void copyMagicEffect(RE::TESForm* source, RE::TESForm* target);
 static void copyBookAppearence(RE::TESForm* source, RE::TESForm* target);
 static void applyPattern(FormRecord* instance);
+
 template <class T>
 void copyComponent(RE::TESForm* from, RE::TESForm* to);
 void copyAppearence(RE::TESForm* source, RE::TESForm* target);
-static void applyPattern(FormRecord* instance);
-
 
 RE::TESForm* AddForm(RE::TESForm* baseItem) {
-
     if (!espFound) {
         return nullptr;
     }
@@ -23,7 +23,7 @@ RE::TESForm* AddForm(RE::TESForm* baseItem) {
     EachFormData([&](FormRecord* item) {
         if (item->deleted) {
             printInt("item undeleted", item->formId);
-            auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
+            const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
             result = factory->Create();
             result->SetFormID(item->formId, false);
             item->Undelete(result, baseItem->GetFormType());
@@ -39,10 +39,10 @@ RE::TESForm* AddForm(RE::TESForm* baseItem) {
     }
 
     print("item created");
-    auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
-    auto newForm = factory->Create();
+    const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
+    const auto newForm = factory->Create();
     newForm->SetFormID(lastFormId, false);
-    auto slot = FormRecord::CreateNew(newForm, baseItem->GetFormType(), lastFormId);
+    const auto slot = FormRecord::CreateNew(newForm, baseItem->GetFormType(), lastFormId);
     incrementLastFormID();
     slot->baseForm = baseItem;
     applyPattern(slot);
@@ -55,20 +55,18 @@ static void applyPattern(FormRecord* instance) {
         return;
     }
 
-    auto baseForm = instance->baseForm;
-    auto newForm = instance->actualForm;
+    const auto baseForm = instance->baseForm;
+    const auto newForm = instance->actualForm;
 
     if (baseForm && newForm) {
-        auto weaponBaseForm = baseForm->As<RE::TESObjectWEAP>();
-        auto weaponNewForm = newForm->As<RE::TESObjectWEAP>();
+        const auto weaponBaseForm = baseForm->As<RE::TESObjectWEAP>();
+        const auto weaponNewForm = newForm->As<RE::TESObjectWEAP>();
 
-        auto bookBaseForm = baseForm->As<RE::TESObjectBOOK>();
-        auto bookNewForm = newForm->As<RE::TESObjectBOOK>();
+        const auto bookBaseForm = baseForm->As<RE::TESObjectBOOK>();
+        const auto bookNewForm = newForm->As<RE::TESObjectBOOK>();
 
-        
-        auto ammoBaseForm = baseForm->As<RE::TESAmmo>();
-        auto ammoNewForm = newForm->As<RE::TESAmmo>();
-
+        const auto ammoBaseForm = baseForm->As<RE::TESAmmo>();
+        const auto ammoNewForm = newForm->As<RE::TESAmmo>();
 
         if (weaponNewForm && weaponBaseForm) {
             weaponNewForm->firstPersonModelObject = weaponBaseForm->firstPersonModelObject;
@@ -100,8 +98,7 @@ static void applyPattern(FormRecord* instance) {
             ammoNewForm->GetRuntimeData().data.damage = ammoBaseForm->GetRuntimeData().data.damage;
             ammoNewForm->GetRuntimeData().data.flags = ammoBaseForm->GetRuntimeData().data.flags;
             ammoNewForm->GetRuntimeData().data.projectile = ammoBaseForm->GetRuntimeData().data.projectile;
-        }
-        else {
+        } else {
             newForm->Copy(baseForm);
         }
 
@@ -138,8 +135,6 @@ void copyAppearence(RE::TESForm* source, RE::TESForm* target) {
     copyComponent<RE::TESBipedModelForm>(source, target);
 }
 
-
-
 template <class T>
 void copyComponent(RE::TESForm* from, RE::TESForm* to) {
     auto fromT = from->As<T>();
@@ -149,9 +144,8 @@ void copyComponent(RE::TESForm* from, RE::TESForm* to) {
     }
 }
 
-
 static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target) {
-    auto* sourceModelBipedForm = source->As<RE::TESObjectARMO>();
+    const auto* sourceModelBipedForm = source->As<RE::TESObjectARMO>();
     auto* targeteModelBipedForm = target->As<RE::TESObjectARMO>();
     if (sourceModelBipedForm && targeteModelBipedForm) {
         print("armor");
@@ -160,7 +154,7 @@ static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target) {
 }
 
 static void copyFormObjectWeaponModel(RE::TESForm* source, RE::TESForm* target) {
-    auto* sourceModelWeapon = source->As<RE::TESObjectWEAP>();
+    const auto* sourceModelWeapon = source->As<RE::TESObjectWEAP>();
     auto* targeteModelWeapon = target->As<RE::TESObjectWEAP>();
     if (sourceModelWeapon && targeteModelWeapon) {
         print("weapon");
@@ -176,9 +170,8 @@ static void copyFormObjectWeaponModel(RE::TESForm* source, RE::TESForm* target) 
     }
 }
 
-
 static void copyMagicEffect(RE::TESForm* source, RE::TESForm* target) {
-    auto* sourceEffect = source->As<RE::EffectSetting>();
+    const auto* sourceEffect = source->As<RE::EffectSetting>();
     auto* targetEffect = target->As<RE::EffectSetting>();
     if (sourceEffect && targetEffect) {
         targetEffect->effectSounds = sourceEffect->effectSounds;
@@ -197,9 +190,8 @@ static void copyMagicEffect(RE::TESForm* source, RE::TESForm* target) {
     }
 }
 
-
 static void copyBookAppearence(RE::TESForm* source, RE::TESForm* target) {
-    auto* sourceBook = source->As<RE::TESObjectBOOK>();
+    const auto* sourceBook = source->As<RE::TESObjectBOOK>();
     auto* targetBook = target->As<RE::TESObjectBOOK>();
     if (sourceBook && targetBook) {
         targetBook->inventoryModel = sourceBook->inventoryModel;

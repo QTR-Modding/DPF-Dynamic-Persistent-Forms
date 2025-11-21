@@ -1,35 +1,13 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <iostream>
-#include <regex>
-#include <windows.h>
-#include "src/form_record.h"  
-#include "src/log.cpp"  
-#include "src/model.cpp"  
-#include "src/persistence.cpp"
-#include "src/papyrus.cpp"
-#include <spdlog/sinks/basic_file_sink.h>
-
-//void SetupLog() {
-//    auto logsFolder = SKSE::log::log_directory();
-//    if (!logsFolder) SKSE::stl::report_and_fail("SKSE log_directory not provided, logs disabled.");
-//    auto pluginName = SKSE::PluginDeclaration::GetSingleton()->GetName();
-//    auto logFilePath = *logsFolder / std::format("{}.log", pluginName);
-//    auto fileLoggerPtr = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
-//    auto loggerPtr = std::make_shared<spdlog::logger>("log", std::move(fileLoggerPtr));
-//    spdlog::set_default_logger(std::move(loggerPtr));
-//    spdlog::set_level(spdlog::level::trace);
-//    spdlog::flush_on(spdlog::level::trace);
-//}
-
-
+#include "log.h"
+#include "form_record.h"
+#include "model.h"
+#include "persistence.h"
+#include "papyrus.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     SKSE::Init(skse);
 
     //EnableLog("DynamicPersistentFormsLog.txt", "DPF 2");
-
 
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
 
@@ -46,8 +24,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
             }
             while (formData.size() > 0) {
                 if (formData.back()) {
-                    if (formData.back()->actualForm)
-                    {
+                    if (formData.back()->actualForm) {
                         formData.back()->actualForm->SetDelete(true);
                     }
                 }

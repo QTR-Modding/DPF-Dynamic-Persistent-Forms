@@ -1,5 +1,6 @@
 #pragma once
-#include "form.cpp"
+#include "form.h"
+#include <mutex>
 
 std::mutex papyrusMutex;
 
@@ -9,26 +10,6 @@ RE::TESForm* Create(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
         if (!baseItem) {
             return nullptr;
         }
-
-        // THIS WAS CAUSING ISSUES
-        //if (baseItem->GetFormID() >= 0x7FF0800) {
-        //    print("item in treshold", baseItem->GetFormID());
-        //    bool found = false;
-        //    EachFormData([&](FormRecord* item) {
-        //        if (!item->Match(baseItem)) {
-        //            if (item->baseForm) {
-        //                found = true;
-        //                print("item replaced", baseItem->GetFormID());
-        //                baseItem = item->baseForm;
-        //            }
-        //            return false;
-        //        }
-        //        return true;
-        //    });
-        //    if (!found) {
-        //        return nullptr;
-        //    }
-        //}
 
         auto* newForm = AddForm(baseItem);
 
@@ -103,10 +84,10 @@ void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting
             return;
         }
 
-        auto magicItem = item->As<RE::MagicItem>();
+        const auto magicItem = item->As<RE::MagicItem>();
 
         if (magicItem) {
-            auto newEffect = new RE::Effect();
+            const auto newEffect = new RE::Effect();
             newEffect->cost = cost;
             newEffect->baseEffect = effect;
             newEffect->effectItem.magnitude = magnitude;
@@ -130,11 +111,11 @@ void CopyMagicEffects(RE::StaticFunctionTag*, RE::TESForm* from, RE::TESForm* to
             return;
         }
 
-        auto magicItemFrom = from->As<RE::MagicItem>();
-        auto magicItemTo = to->As<RE::MagicItem>();
+        const auto magicItemFrom = from->As<RE::MagicItem>();
+        const auto magicItemTo = to->As<RE::MagicItem>();
 
         if (magicItemFrom && magicItemTo) {
-            for (auto item : magicItemFrom->effects) {
+            for (const auto item : magicItemFrom->effects) {
                 auto newEffect = new RE::Effect();
                 newEffect->cost = item->cost;
                 newEffect->baseEffect = item->baseEffect;
@@ -185,7 +166,7 @@ void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
 
         print("added");
 
-        auto magicItem = item->As<RE::MagicItem>();
+        const auto magicItem = item->As<RE::MagicItem>();
 
         if (magicItem) {
             magicItem->effects.clear();
@@ -368,7 +349,7 @@ static void SetAmmoProjectile(RE::StaticFunctionTag*, RE::TESAmmo* ammo, RE::BGS
 static void SetSoulGemCapacity(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint32_t capacity) {
     std::lock_guard<std::mutex> lock(papyrusMutex);
 
-    auto value = static_cast<RE::SOUL_LEVEL>(capacity);
+    const auto value = static_cast<RE::SOUL_LEVEL>(capacity);
 
     if (!soulGem || value > RE::SOUL_LEVEL::kGrand || value < RE::SOUL_LEVEL::kNone) {
         return;
@@ -379,7 +360,7 @@ static void SetSoulGemCapacity(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, 
 static void SetSoulGemCurrentSoul(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint32_t capacity) {
     std::lock_guard<std::mutex> lock(papyrusMutex);
 
-    auto value = static_cast<RE::SOUL_LEVEL>(capacity);
+    const auto value = static_cast<RE::SOUL_LEVEL>(capacity);
 
     if (!soulGem || value > RE::SOUL_LEVEL::kGrand || value < RE::SOUL_LEVEL::kNone) {
         return;

@@ -1,9 +1,10 @@
 #pragma once
-#include "model.cpp"
-#include "form.cpp"
-#include "serializer.cpp"
-#include "form_serializer.cpp"
-#include "form_record_serializer.cpp"
+#include "model.h"
+#include "form.h"
+#include "serializer.h"
+#include "form_serializer.h"
+#include "form_record_serializer.h"
+#include <mutex>
 
 std::mutex callbackMutext;
 
@@ -18,7 +19,7 @@ static void SaveCallback(SKSE::SerializationInterface* a_intfc) {
         if (!a_intfc->OpenRecord('ARR_', 1)) {
             print("Failed to open record for arr!");
         } else {
-            auto serializer = new SaveDataSerializer(a_intfc);
+            const auto serializer = new SaveDataSerializer(a_intfc);
             StoreAllFormRecords(serializer);
         }
         SaveCache();
@@ -40,7 +41,7 @@ static void LoadCallback(SKSE::SerializationInterface* a_intfc) {
         while (a_intfc->GetNextRecordInfo(type, version, length)) {
             switch (type) {
                 case 'ARR_': {
-                    auto serializer = new SaveDataSerializer(a_intfc);
+                    const auto serializer = new SaveDataSerializer(a_intfc);
                     refreshGame = RestoreAllFormRecords(serializer);
                     delete serializer;
                 } break;
@@ -64,7 +65,7 @@ static void LoadCallback(SKSE::SerializationInterface* a_intfc) {
 void SaveCache() {
     print("save cache");
 
-    auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin", std::ios::out | std::ios::binary | std::ios::trunc);
+    const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin", std::ios::out | std::ios::binary | std::ios::trunc);
 
     if (!fileWriter->IsOpen()) {
         print("File not found");
@@ -80,7 +81,7 @@ void SaveCache() {
 
 void LoadCache() {
     print("LOAD CACHE");
-    auto fileReader = new FileReader("DynamicPersistentFormsCache.bin", std::ios::in | std::ios::binary);
+    const auto fileReader = new FileReader("DynamicPersistentFormsCache.bin", std::ios::in | std::ios::binary);
 
     if (!fileReader->IsOpen()) {
         print("File not found");

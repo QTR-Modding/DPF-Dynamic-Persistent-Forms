@@ -1,12 +1,14 @@
 #pragma once
+#include "form.h"
 #include "form_record.h"
-#include "form.cpp"
+#include "serializer.h"
+#include "model.h"
 
 template <typename T>
 void StoreAllFormRecords(Serializer<T>* serializer) {
 
-    size_t sizeData = formData.size();
-    size_t sizeRef = formRef.size();
+    const size_t sizeData = formData.size();
+    const size_t sizeRef = formRef.size();
 
     serializer->Write<uint32_t>(static_cast<uint32_t>(sizeData));
     serializer->Write<uint32_t>(static_cast<uint32_t>(sizeRef));
@@ -39,8 +41,8 @@ bool RestoreAllFormRecords(Serializer<T>* serializer) {
 
     bool formRecordCreated = false;
 
-    uint32_t sizeData = serializer->Read<uint32_t>();
-    uint32_t sizeRef = serializer->Read<uint32_t>();
+    const uint32_t sizeData = serializer->Read<uint32_t>();
+    const uint32_t sizeRef = serializer->Read<uint32_t>();
     printSize("number of items", sizeData);
 
     for (uint32_t i = 0; i < sizeData; i++) {
@@ -263,7 +265,7 @@ static void RestoreFormRecordData(Serializer<T>* serializer, FormRecord* instanc
     auto deleted = serializer->Read<char>();
 
     if (deleted == 1) {
-        print("delted");
+        print("deleted");
         serializer->finishReadingSection();
         return;
     }

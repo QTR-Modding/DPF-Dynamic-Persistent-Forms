@@ -1,6 +1,7 @@
-
-
 #pragma once
+#include <string>
+#include <fstream>
+#include <format>
 
 static bool DoLog = false;
 
@@ -29,9 +30,9 @@ class FileLogger {
         return instance;
     }
     static void SetFileName(std::string name) {
-        fileName = name;
+        fileName = std::move(name);
     }
-    void Print(std::string message) {
+    void Print(const std::string& message) {
         if (stream.is_open()) {
             stream << message << std::endl;
         }
@@ -42,8 +43,8 @@ class FileLogger {
 FileLogger* FileLogger::instance = nullptr;
 std::string FileLogger::fileName = "";
 
-void EnableLog(std::string filename, std::string message) {
-    FileLogger::SetFileName(filename);
+void EnableLog(std::string filename, const std::string& message) {
+    FileLogger::SetFileName(std::move(filename));
     FileLogger::GetSingleton()->Print(message);
     DoLog = true;
 }
@@ -56,28 +57,28 @@ void print(const std::string message) {
 }
 void print(const std::string message1, const std::string message2) {
     if (DoLog) {
-        auto msg = std::format("{0}: {1}", message1, message2);
+        const auto msg = std::format("{0}: {1}", message1, message2);
         FileLogger::GetSingleton()->Print(msg);
          RE::ConsoleLog::GetSingleton()->Print(msg.c_str());
     }
 }
 void print(const std::string message, const float number) {
     if (DoLog) {
-        auto msg = std::format("{0}: {1}", message, number);
+        const auto msg = std::format("{0}: {1}", message, number);
         FileLogger::GetSingleton()->Print(msg);
         RE::ConsoleLog::GetSingleton()->Print(msg.c_str());
     }
 }
 void printSize(const std::string message, const size_t number) {
     if (DoLog) {
-        auto msg = std::format("{0}: {1}", message, number);
+        const auto msg = std::format("{0}: {1}", message, number);
         FileLogger::GetSingleton()->Print(msg);
         RE::ConsoleLog::GetSingleton()->Print(msg.c_str());
     }
 }
 void printInt(const std::string message, const uint32_t number) {
     if (DoLog) {
-        auto msg = std::format("{0}: {1}", message, number);
+        const auto msg = std::format("{0}: {1}", message, number);
         FileLogger::GetSingleton()->Print(msg);
         RE::ConsoleLog::GetSingleton()->Print(msg.c_str());
     }
