@@ -1,8 +1,20 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "hello-world",
-    "version-string": "0.0.1",
-    "dependencies": [
-        "commonlibsse-ng"
-    ]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "dynamic-persistent-forms",
+  "version-string": "1.0.0.0",
+  "dependencies": [
+    "fast-cpp-csv-parser",
+    "rsm-binary-io",
+    "spdlog",
+    "xbyak",
+    "rapidcsv",
+    "directxtk"
+  ],
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "9.1.0"
+    }
+  ],
+  "builtin-baseline": "78b61582c9e093fda56a01ebb654be15a0033897"
 }
