@@ -21,7 +21,7 @@ void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting
                     uint32_t area, uint32_t duration, float cost) {
     std::lock_guard<std::mutex> lock(papyrusMutex);
     try {
-        print("added");
+        logger::trace("added");
 
         if (!item || !effect) {
             return;
@@ -48,7 +48,7 @@ void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting
 void CopyMagicEffects(RE::StaticFunctionTag*, RE::TESForm* from, RE::TESForm* to) {
     std::lock_guard<std::mutex> lock(papyrusMutex);
     try {
-        print("added");
+        logger::trace("added");
 
         if (!from || !to) {
             return;
@@ -87,7 +87,7 @@ void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
             return;
         }
 
-        print("added");
+        logger::trace("added");
 
         const auto magicItem = item->As<RE::MagicItem>();
 
@@ -129,7 +129,7 @@ static void CopyAppearance(RE::StaticFunctionTag*, RE::TESForm* source, RE::TESF
         copyAppearence(source, target);
 
     } catch (const std::exception&) {
-        print("error copying model");
+        logger::error("error copying model");
     }
 }
 static void SetSpellTomeSpell(RE::StaticFunctionTag*, RE::TESObjectBOOK* spellTome, RE::SpellItem* spell) {
@@ -142,7 +142,7 @@ static void SetSpellTomeSpell(RE::StaticFunctionTag*, RE::TESObjectBOOK* spellTo
         spellTome->data.teaches.spell = spell;
     } 
     catch (const std::exception&) {
-        print("add spell");
+        logger::error("add spell");
     }
 }
 static void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, bool autoCalculate) {

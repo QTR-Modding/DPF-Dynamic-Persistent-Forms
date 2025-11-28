@@ -1,6 +1,6 @@
 set(headers ${headers}
 	include/PCH.h
-	include/log.h
+	include/logger.h
 	include/form_record.h
 	include/form.h
 	include/model.h

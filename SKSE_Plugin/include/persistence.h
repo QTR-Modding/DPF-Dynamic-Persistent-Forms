@@ -15,23 +15,23 @@ void SaveCache();
 static void SaveCallback(SKSE::SerializationInterface* a_intfc) {
     std::lock_guard<std::mutex> lock(callbackMutext);
     try {
-        print("SAVE CAllBACK");
+        logger::info("SAVE CAllBACK");
         if (!a_intfc->OpenRecord('ARR_', 1)) {
-            print("Failed to open record for arr!");
+            logger::error("Failed to open record for arr!");
         } else {
             const auto serializer = new SaveDataSerializer(a_intfc);
             StoreAllFormRecords(serializer);
         }
         SaveCache();
     } catch (const std::exception&) {
-        print("error saving");
+        logger::error("error saving");
     }
 }
 
 static void LoadCallback(SKSE::SerializationInterface* a_intfc) {
     std::lock_guard<std::mutex> lock(callbackMutext);
     try {
-        print("LOAD CAllBACK");
+        logger::info("LOAD CAllBACK");
 
         uint32_t type;
         uint32_t version;
@@ -46,7 +46,7 @@ static void LoadCallback(SKSE::SerializationInterface* a_intfc) {
                     delete serializer;
                 } break;
                 default:
-                    print("Unrecognized signature type!");
+                    logger::error("Unrecognized signature type!");
                     break;
             }
         }
@@ -57,18 +57,18 @@ static void LoadCallback(SKSE::SerializationInterface* a_intfc) {
         }
 
 
-        print("CAllBACK LOADED");
+        logger::info("CAllBACK LOADED");
     } catch (const std::exception&) {
-        print("error loading");
+        logger::error("error loading");
     }
 }
 void SaveCache() {
-    print("save cache");
+    logger::info("save cache");
 
     const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin", std::ios::out | std::ios::binary | std::ios::trunc);
 
     if (!fileWriter->IsOpen()) {
-        print("File not found");
+        logger::error("File not found");
         return;
     }
 
@@ -76,15 +76,15 @@ void SaveCache() {
 
     delete fileWriter;
 
-    print("Property data has been written to file successfully.");
+    logger::info("Property data has been written to file successfully.");
 }
 
 void LoadCache() {
-    print("LOAD CACHE");
+    logger::info("LOAD CACHE");
     const auto fileReader = new FileReader("DynamicPersistentFormsCache.bin", std::ios::in | std::ios::binary);
 
     if (!fileReader->IsOpen()) {
-        print("File not found");
+        logger::error("File not found");
         return;
     }
     RestoreAllFormRecords(fileReader);
@@ -93,5 +93,5 @@ void LoadCache() {
 
     delete fileReader;
 
-    print("Property data has been loaded from file successfully.");
+    logger::info("Property data has been loaded from file successfully.");
 }

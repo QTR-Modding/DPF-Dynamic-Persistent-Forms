@@ -36,7 +36,7 @@ namespace Services {
             
             auto* newForm = AddForm(baseItem);
             if (newForm) {
-                printInt("new form id", newForm->GetFormID());
+                logger::info("new form id", newForm->GetFormID());
             }
             return newForm;
         } catch (const std::exception&) {
@@ -51,7 +51,7 @@ namespace Services {
             bool found = false;
             EachFormRef([&](FormRecord* item) {
                 if (item->Match(baseItem)) {
-                    print("reference reused");
+                    logger::info("reference reused");
                     if (item->deleted) {
                         item->UndeleteReference(baseItem);
                     }

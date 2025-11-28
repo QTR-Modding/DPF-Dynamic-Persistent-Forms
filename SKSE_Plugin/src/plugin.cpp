@@ -1,4 +1,3 @@
-#include "log.h"
 #include "form_record.h"
 #include "model.h"
 #include "persistence.h"
@@ -43,7 +42,7 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
     if (message->type == SKSE::MessagingInterface::kDataLoaded) {
         ReadFirstFormIdFromESP();
         LoadCache();
-        print("loaded");
+        logger::info("loaded");
     }
     else if (message->type == SKSE::MessagingInterface::kNewGame) {
         std::filesystem::remove("DynamicPersistentFormsCache.bin");
@@ -61,7 +60,7 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
             formData.pop_back();
         }
         ResetId();
-        print("new game");
+        logger::info("new game");
     }
 
     // Adicione isso para suportar requisições da API

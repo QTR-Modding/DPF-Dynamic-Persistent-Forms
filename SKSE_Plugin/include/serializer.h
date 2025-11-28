@@ -176,7 +176,7 @@ public:
     RE::FormID ReadFormId() {
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
         const char fileRef = Read<char>();
-        print("fileref", fileRef);
+        logger::trace("fileref", fileRef);
 
         if (fileRef == 0) {
             return 0;
@@ -190,9 +190,9 @@ public:
             const std::string fileName = ReadString();
             const uint32_t localId = Read<uint32_t>();
             const auto formId = dataHandler->LookupFormID(localId, fileName);
-            print("localid", formId);
-            print("modname", fileName);
-            print("id", formId);
+            logger::trace("localid", formId);
+            logger::trace("modname", fileName);
+            logger::trace("id", formId);
             return formId;
         }
 
@@ -202,10 +202,10 @@ public:
     }
 
     void WriteFormId(RE::FormID formId) {
-        printInt("formid", formId);
+        logger::trace("formid", formId);
         if (formId == 0) {
-            print("zero");
-            Write<char>(0); 
+            logger::trace("zero");
+            Write<char>(0);
             return;
         }
 
@@ -213,15 +213,15 @@ public:
 
         const auto modId = (formId >> 24) & 0xff;
 
-        print("mid", modId);
+        logger::trace("mid", modId);
         if (modId == dynamicModId) {
-            print("dynamic");
+            logger::trace("dynamic");
             const auto localId = formId & 0xFFFFFF;
             Write<char>(1);
             Write<uint32_t>(localId);
         }
         else if (modId == 0xfe) {
-            print("light");
+            logger::trace("light");
             const auto lightId = (formId >> 12) & 0xFFF;
             const auto file = dataHandler->LookupLoadedLightModByIndex(lightId);
             if (file) {
@@ -232,11 +232,11 @@ public:
                 Write<uint32_t>(localId);
             } else {
                 Write<char>(0);
-                print("missing file");
+                logger::error("missing file");
             }
         } 
         else {
-            print("regular");
+            logger::trace("regular");
             const auto file = dataHandler->LookupLoadedModByIndex(modId);
             if (file) {
                 const auto localId = formId & 0xFFFFFF;
@@ -246,7 +246,7 @@ public:
                 Write<uint32_t>(localId);
             } else {
                 Write<char>(0);
-                print("missing file");
+                logger::error("missing file");
             }
         }
 
@@ -288,7 +288,7 @@ public:
         T item;
         auto success = a_intfc->ReadRecordData(item);
         if (!success) {
-            print("error reanding");
+            logger::error("error reading");
             error = true;
         }
         return item;
@@ -303,7 +303,7 @@ public:
     FileWriter(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::out) {
         fileStream.open(filename, _Mode);
         if (!fileStream.is_open()) {
-            print("Error: Unable to open file ");
+            logger::error("Error: Unable to open file ");
         }
     }
     ~FileWriter() {
@@ -324,7 +324,7 @@ public:
         if (fileStream.is_open()) {
             fileStream.write(reinterpret_cast<const char*>(&value), sizeof(T));
         } else {
-            print("Error: File not open for writing.");
+            logger::error("Error: File not open for writing.");
         }
     }
 };
@@ -337,7 +337,7 @@ public:
     FileReader(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::in) {
         fileStream.open(filename, _Mode);
         if (!fileStream.is_open()) {
-            print("Error: Unable to open file");
+            logger::error("Error: Unable to open file");
         }
     }
     ~FileReader() {
@@ -357,7 +357,7 @@ public:
             fileStream.read(reinterpret_cast<char*>(&value), sizeof(T));
             return value;
         } else {
-            print("Error: File not open for reading.");
+            logger::error("Error: File not open for reading.");
         }
         return T();
     }

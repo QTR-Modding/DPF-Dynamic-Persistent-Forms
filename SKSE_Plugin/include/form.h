@@ -1,8 +1,6 @@
 #pragma once
 #include "form_record.h"
-#include "log.h"
 #include "model.h"
-#include <cstdint>
 
 static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target);
 static void copyFormObjectWeaponModel(RE::TESForm* source, RE::TESForm* target);
@@ -22,7 +20,7 @@ RE::TESForm* AddForm(RE::TESForm* baseItem) {
     RE::TESForm* result = nullptr;
     EachFormData([&](FormRecord* item) {
         if (item->deleted) {
-            printInt("item undeleted", item->formId);
+            logger::info("item undeleted", item->formId);
             const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
             result = factory->Create();
             result->SetFormID(item->formId, false);
@@ -38,7 +36,7 @@ RE::TESForm* AddForm(RE::TESForm* baseItem) {
         return result;
     }
 
-    print("item created");
+    logger::info("item created");
     const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
     const auto newForm = factory->Create();
     newForm->SetFormID(lastFormId, false);
@@ -148,7 +146,7 @@ static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target) {
     const auto* sourceModelBipedForm = source->As<RE::TESObjectARMO>();
     auto* targeteModelBipedForm = target->As<RE::TESObjectARMO>();
     if (sourceModelBipedForm && targeteModelBipedForm) {
-        print("armor");
+        logger::trace("armor");
         targeteModelBipedForm->armorAddons = sourceModelBipedForm->armorAddons;
     }
 }
@@ -157,7 +155,7 @@ static void copyFormObjectWeaponModel(RE::TESForm* source, RE::TESForm* target) 
     const auto* sourceModelWeapon = source->As<RE::TESObjectWEAP>();
     auto* targeteModelWeapon = target->As<RE::TESObjectWEAP>();
     if (sourceModelWeapon && targeteModelWeapon) {
-        print("weapon");
+        logger::trace("weapon");
         targeteModelWeapon->firstPersonModelObject = sourceModelWeapon->firstPersonModelObject;
         targeteModelWeapon->attackSound = sourceModelWeapon->attackSound;
         targeteModelWeapon->attackSound2D = sourceModelWeapon->attackSound2D;

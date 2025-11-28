@@ -12,24 +12,24 @@ void StoreAllFormRecords(Serializer<T>* serializer) {
 
     serializer->Write<uint32_t>(static_cast<uint32_t>(sizeData));
     serializer->Write<uint32_t>(static_cast<uint32_t>(sizeRef));
-    print("write forms");
+    logger::info("write forms");
 
     EachFormData([&](FormRecord* instance) {
         StoreFormRecord(serializer, instance, false);
         return true;
     });
 
-    print("write data");
+    logger::info("write data");
     EachFormData([&](FormRecord* elem) {
         StoreFormRecordData(serializer, elem);
         return true;
     });
-    print("write ref");
+    logger::info("write ref");
     EachFormRef([&](FormRecord* instance) {
         StoreFormRecord(serializer, instance, true);
         return true;
     });
-    print("write ref data");
+    logger::info("write ref data");
 
     EachFormRef([&](FormRecord* elem) {
         StoreFormRecordData(serializer, elem);
@@ -43,33 +43,33 @@ bool RestoreAllFormRecords(Serializer<T>* serializer) {
 
     const uint32_t sizeData = serializer->Read<uint32_t>();
     const uint32_t sizeRef = serializer->Read<uint32_t>();
-    printSize("number of items", sizeData);
+    logger::info("number of items {}", sizeData);
 
     for (uint32_t i = 0; i < sizeData; i++) {
-        printInt("form data", i);
+        logger::trace("form data {}", i);
         if (RestoreFormRecord(serializer, i, false)) {
             formRecordCreated = true;
         }
     }
-    print("reading form data");
+    logger::info("reading form data");
 
     for (uint32_t i = 0; i < sizeData; ++i) {
-        printInt("form data", i);
+        logger::trace("form data {}", i);
         auto instance = formData[i];
         RestoreFormRecordData(serializer, instance);
     }
 
-    printSize("number of items", sizeRef);
+    logger::info("number of items {}", sizeRef);
     for (uint32_t i = 0; i < sizeRef; i++) {
-        printInt("form data", i);
+        logger::trace("form data {}", i);
         if (RestoreFormRecord(serializer, i, true)) {
             formRecordCreated = true;
         }
     }
-    print("reading form data");
+    logger::info("reading form data");
 
     for (uint32_t i = 0; i < sizeRef; ++i) {
-        printInt("form data", i);
+        logger::trace("form data {}", i);
         auto instance = formRef[i];
         RestoreFormRecordData(serializer, instance);
     }
@@ -90,17 +90,17 @@ static void StoreFormRecord(Serializer<T>* serializer, FormRecord* instance, boo
 
     if (!instance->deleted) {
         if (reference) {
-            print("changed");
+            logger::info("changed");
             serializer->WriteFormRef(instance->actualForm);
             serializer->WriteFormRef(instance->modelForm);
         } else {
-            print("created");
+            logger::info("created");
             serializer->WriteFormRef(instance->baseForm);
             serializer->WriteFormRef(instance->modelForm);
             serializer->WriteFormId(instance->formId);
         }
     } else {
-        print("deleted");
+        logger::info("deleted");
         serializer->WriteFormId(instance->formId);
     }
 
@@ -170,7 +170,7 @@ template <typename T>
 static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance) {
 
     bool createdRecord = false;
-    print("changed form");
+    logger::info("changed form");
     auto actualForm = serializer->ReadFormRef();
     auto modelForm = serializer->ReadFormRef();
     serializer->finishReadingSection();
@@ -182,13 +182,13 @@ static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance)
         } else {
             instance->deleted = true;
         }
-        print("missing actual form");
+        logger::info("missing actual form");
         return false;
     }
 
 
     if (!instance) {
-        print("ref instance not found creating it");
+        logger::info("ref instance not found creating it");
         instance = FormRecord::CreateReference(actualForm);
         instance->modelForm = modelForm;
         AddFormRef(instance);
@@ -207,7 +207,7 @@ static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance)
 }
 template <typename T>
 static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) {
-    print("new form");
+    logger::info("new form");
     bool createdRecord = false;
     auto baseForm = serializer->ReadFormRef();
     auto modelForm = serializer->ReadFormRef();
@@ -215,7 +215,7 @@ static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) 
     serializer->finishReadingSection();
 
     if (!baseForm) {
-        print("Missing base form");
+        logger::info("Missing base form");
         if (!instance) {
             instance = FormRecord::CreateDeleted(id);
             AddFormData(instance);
@@ -229,7 +229,7 @@ static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) 
         if (instance->actualForm) {
             instance->actualForm->SetDelete(true);
         }
-        print("instance is of incompatible type");
+        logger::info("instance is of incompatible type");
         auto factory = RE::IFormFactory::GetFormFactoryByType(baseForm->GetFormType());
         RE::TESForm* current = factory->Create();
         current->SetFormID(id, false);
@@ -237,7 +237,7 @@ static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) 
         createdRecord = true;
     }
     else if (!instance) {
-        print("instance not found creating it");
+        logger::warn("instance not found creating it");
         auto factory = RE::IFormFactory::GetFormFactoryByType(baseForm->GetFormType());
         RE::TESForm* current = factory->Create();
         current->SetFormID(id, false);
@@ -265,13 +265,13 @@ static void RestoreFormRecordData(Serializer<T>* serializer, FormRecord* instanc
     auto deleted = serializer->Read<char>();
 
     if (deleted == 1) {
-        print("deleted");
+        logger::info("deleted");
         serializer->finishReadingSection();
         return;
     }
 
     if (!instance->actualForm) {
-        print("missing actual form");
+        logger::info("missing actual form");
         serializer->finishReadingSection();
         return; 
     }
