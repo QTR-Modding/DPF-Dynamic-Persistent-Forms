@@ -1,5 +1,5 @@
 #pragma once
-
+#include "model.h"
 #include <cstdint>
 #include <stack>
 #include <sstream>
@@ -8,54 +8,33 @@
 #include <cstring>
 
 class StreamWrapper {
-    private:
     std::stringstream stream;
-    public:
-        void Clear() {
-            stream.str("");
-            stream.clear();
-            stream.seekg(0);
+public:
+        void Clear();
+    void SeekBeginning();
+
+    template <class T>
+    void Write(T value) { stream.write(reinterpret_cast<const char*>(&value), sizeof(T)); }
+        
+    template <class T>
+    T Read() {
+        T result;
+        if (stream.read(reinterpret_cast<char*>(&result), sizeof(T))) {
+            return result;
         }
-        void SeekBeginning() { stream.seekg(0); }
-        template <class T>
-        void Write(T value) { stream.write(reinterpret_cast<const char*>(&value), sizeof(T)); }
-        template <class T>
-        T Read() {
-            T result;
-            if (stream.read(reinterpret_cast<char*>(&result), sizeof(T))) {
-                return result;
-            }
-            return T();
-        }
-        uint32_t Size() {
-            const std::streampos currentPosition = stream.tellg();
-            stream.seekg(0, std::ios::end);
-            const size_t size = stream.tellg();
-            stream.seekg(currentPosition);
-            return static_cast<uint32_t>(size);
-        }
-        void WriteDown(std::function<void(uint32_t)> const& start, std::function<void(char)> const& step) {
-            const auto size = Size();
-            start(size);
-            SeekBeginning();
-            for (size_t i = 0; i < size; i++) {
-                step(static_cast<char>(stream.get()));
-            }
-            Clear();
-        }
-        void ReadOut(std::function<uint32_t()> start, std::function<char()> const& step) {
-            Clear();
-            const uint32_t arrayLength = start();
-            for (size_t i = 0; i < arrayLength; i++) {
-                stream.put(step());
-            }
-            SeekBeginning();
-        }
+        return T();
+    }
+    
+    uint32_t Size();
+
+    void WriteDown(std::function<void(uint32_t)> const& start, std::function<void(char)> const& step);
+
+    void ReadOut(std::function<uint32_t()> start, std::function<char()> const& step);
 };
 
 template <typename Derived>
 class Serializer {
-private:
+    
     std::stack<StreamWrapper*> ctx;
 
     template <class T>
@@ -71,12 +50,7 @@ protected:
     bool error = false;
 public:
 
-    ~Serializer() {
-        while (!ctx.empty()) {
-            delete ctx.top();
-            ctx.pop();      
-        }
-    }
+    ~Serializer();
 
     template <class T>
     void Write(T value) {
@@ -273,16 +247,24 @@ public:
     }
 };
 
+template <typename Derived>
+Serializer<Derived>::~Serializer() {
+    while (!ctx.empty()) {
+        delete ctx.top();
+        ctx.pop();      
+    }
+}
+
 class SaveDataSerializer : public Serializer<SaveDataSerializer> {
-private:
     SKSE::SerializationInterface* a_intfc;
 public:
-    SaveDataSerializer(SKSE::SerializationInterface* _a_intfc) { a_intfc = _a_intfc; }
+    SaveDataSerializer(SKSE::SerializationInterface* _a_intfc);
 
     template <class T>
     void WriteImplementation(T item) {
         a_intfc->WriteRecordData(item);
     }
+
     template <class T>
     T ReadImplementation() {
         T item;
@@ -296,21 +278,12 @@ public:
 };
 
 class FileWriter : public Serializer<FileWriter> {
-private:
     std::ofstream fileStream;
 
 public:
-    FileWriter(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::out) {
-        fileStream.open(filename, _Mode);
-        if (!fileStream.is_open()) {
-            logger::error("Error: Unable to open file ");
-        }
-    }
-    ~FileWriter() {
-        if (fileStream.is_open()) {
-            fileStream.close();
-        }
-    }
+    FileWriter(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::out);
+
+    ~FileWriter();
 
     bool IsOpen() { return fileStream.is_open(); }
 
@@ -330,21 +303,12 @@ public:
 };
 
 class FileReader : public Serializer<FileReader> {
-private:
     std::ifstream fileStream;
 
 public:
-    FileReader(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::in) {
-        fileStream.open(filename, _Mode);
-        if (!fileStream.is_open()) {
-            logger::error("Error: Unable to open file");
-        }
-    }
-    ~FileReader() {
-        if (fileStream.is_open()) {
-            fileStream.close();
-        }
-    }
+    FileReader(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::in);
+
+    ~FileReader();
 
     bool IsOpen() { return fileStream.is_open(); }
 

@@ -1,7 +1,5 @@
 #pragma once
-#include "form.h"
 #include <mutex>
-#include <functional>
 
 namespace DPF {
     // Defina um ID único para sua interface
@@ -29,80 +27,11 @@ namespace Services {
     // Mutex global para thread safety
     inline std::mutex serviceMutex;
 
-    inline RE::TESForm* Create(RE::TESForm* baseItem) {
-        std::lock_guard<std::mutex> lock(serviceMutex);
-        try {
-            if (!baseItem) return nullptr;
-            
-            auto* newForm = AddForm(baseItem);
-            if (newForm) {
-                logger::info("new form id", newForm->GetFormID());
-            }
-            return newForm;
-        } catch (const std::exception&) {
-            return nullptr;
-        }
-    }
+    RE::TESForm* Create(RE::TESForm* baseItem);
 
-    inline void Track(RE::TESForm* baseItem) {
-        std::lock_guard<std::mutex> lock(serviceMutex);
-        try {
-            if (!baseItem) return;
-            bool found = false;
-            EachFormRef([&](FormRecord* item) {
-                if (item->Match(baseItem)) {
-                    logger::info("reference reused");
-                    if (item->deleted) {
-                        item->UndeleteReference(baseItem);
-                    }
-                    found = true;
-                    return false;
-                }
-                // Correção da lógica original que parecia ter um if duplicado
-                return true; 
-            });
-            if (!found) {
-                AddFormRef(FormRecord::CreateReference(baseItem));
-            }
-        } catch (...) {}
-    }
+    void Track(RE::TESForm* baseItem);
 
-    inline void UnTrack(RE::TESForm* form) {
-        std::lock_guard<std::mutex> lock(serviceMutex);
-        try {
-            if (!form) return;
-            EachFormRef([&](FormRecord* item) {
-                if (item->Match(form)) {
-                    item->deleted = true;
-                    return false;
-                }
-                return true;
-            });
-        } catch (...) {}
-    }
+    void UnTrack(RE::TESForm* form);
 
-    inline void Dispose(RE::TESForm* form) {
-        std::lock_guard<std::mutex> lock(serviceMutex);
-        try {
-            if (!form) {
-                return;
-            }
-
-            EachFormData([&](FormRecord* item) {
-                if (!item->deleted && item->Match(form)) {
-                    item->deleted = true;
-                    if (item->actualForm) {
-                        item->actualForm->SetDelete(true);
-                    }
-                    return false;
-                }
-                return true;
-                });
-
-
-        }
-        catch (const std::exception&) {
-        }
-    }
-
+    void Dispose(RE::TESForm* form);
 }

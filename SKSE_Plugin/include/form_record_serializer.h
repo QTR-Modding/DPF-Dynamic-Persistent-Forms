@@ -1,6 +1,7 @@
 #pragma once
 #include "form.h"
 #include "form_record.h"
+#include "form_serializer.h"
 #include "serializer.h"
 #include "model.h"
 
@@ -36,6 +37,7 @@ void StoreAllFormRecords(Serializer<T>* serializer) {
         return true;
     });
 }
+
 template <typename T>
 bool RestoreAllFormRecords(Serializer<T>* serializer) {
 
@@ -205,6 +207,7 @@ static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance)
 
     return createdRecord;
 }
+
 template <typename T>
 static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) {
     logger::info("new form");
