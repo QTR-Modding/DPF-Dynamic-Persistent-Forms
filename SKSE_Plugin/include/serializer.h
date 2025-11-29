@@ -151,7 +151,7 @@ public:
     RE::FormID ReadFormId() {
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
         const char fileRef = Read<char>();
-        logger::trace("fileref", fileRef);
+        logger::trace("fileref {}", fileRef);
 
         if (fileRef == 0) {
             return 0;
@@ -165,9 +165,9 @@ public:
             const std::string fileName = ReadString();
             const uint32_t localId = Read<uint32_t>();
             const auto formId = dataHandler->LookupFormID(localId, fileName);
-            logger::trace("localid", formId);
-            logger::trace("modname", fileName);
-            logger::trace("id", formId);
+            logger::trace("localid {:x}", formId);
+            logger::trace("modname {}", fileName);
+            logger::trace("id {:x}", formId);
             return formId;
         }
 
@@ -175,7 +175,7 @@ public:
     }
 
     void WriteFormId(RE::FormID formId) {
-        logger::trace("formid", formId);
+        logger::trace("formid {:x}", formId);
         if (formId == 0) {
             logger::trace("zero");
             Write<char>(0);
