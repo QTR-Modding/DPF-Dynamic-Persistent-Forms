@@ -14,7 +14,6 @@ void SaveCallback(SKSE::SerializationInterface* a_intfc) {
             const auto serializer = new SaveDataSerializer(a_intfc);
             StoreAllFormRecords(serializer);
         }
-        SaveCache();
     } catch (const std::exception&) {
         logger::error("error saving");
     }
@@ -44,7 +43,6 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
             }
         }
         if (refreshGame) {
-            SaveCache();
             UpdateId();
             RE::PlayerCharacter::GetSingleton()->KillImmediate();
         }
@@ -55,28 +53,36 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
     }
 }
 
-void LoadCache() {
-    logger::info("LOAD CACHE");
-    const auto fileReader = new FileReader("DynamicPersistentFormsCache.bin", std::ios::in | std::ios::binary);
+
+std::string removeEssSuffix(const std::string& input) {
+    if (input.size() >= 4 && input.compare(input.size() - 4, 4, ".ess") == 0) {
+        return input.substr(0, input.size() - 4);
+    }
+    return input;
+}
+
+void Persistence::Load(std::string fileName) {
+    fileName = removeEssSuffix(fileName) + "_DPF.bin";
+    logger::trace("loading: {}", fileName);
+
+    auto fileReader = new FileReader(fileName);
 
     if (!fileReader->IsOpen()) {
         logger::error("File not found");
         return;
     }
+
     RestoreAllFormRecords(fileReader);
 
     UpdateId();
 
     delete fileReader;
-
-    logger::info("Property data has been loaded from file successfully.");
 }
+void Persistence::Save(std::string fileName) {
+    fileName = removeEssSuffix(fileName) + "_DPF.bin";
+    logger::trace("saving: {}", fileName);
 
-void SaveCache() {
-    logger::info("save cache");
-
-    const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin",
-                                           std::ios::out | std::ios::binary | std::ios::trunc);
+    auto fileWriter = new FileWriter(fileName);
 
     if (!fileWriter->IsOpen()) {
         logger::error("File not found");
@@ -86,6 +92,4 @@ void SaveCache() {
     StoreAllFormRecords(fileWriter);
 
     delete fileWriter;
-
-    logger::info("Property data has been written to file successfully.");
 }

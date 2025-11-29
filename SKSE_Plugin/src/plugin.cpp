@@ -3,6 +3,7 @@
 #include "persistence.h"
 #include "papyrus.h"
 #include "Services.h"
+#include "hooks.h"
 
 
 class DPFInterfaceImpl : public DPF::IDynamicPersistentForms {
@@ -42,7 +43,6 @@ namespace {
     void OnMessage(SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ReadFirstFormIdFromESP();
-            LoadCache();
             logger::info("loaded");
         } else if (message->type == SKSE::MessagingInterface::kNewGame) {
             std::filesystem::remove("DynamicPersistentFormsCache.bin");
@@ -78,6 +78,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     serialization->SetUniqueID('DPF1');
     serialization->SetSaveCallback(SaveCallback);
     serialization->SetLoadCallback(LoadCallback);
+    Hooks::Install();
 
     return true;
 }
