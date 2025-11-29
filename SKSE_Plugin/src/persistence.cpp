@@ -36,7 +36,8 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
                     const auto serializer = new SaveDataSerializer(a_intfc);
                     refreshGame = RestoreAllFormRecords(serializer);
                     delete serializer;
-                } break;
+                }
+                break;
                 default:
                     logger::error("Unrecognized signature type!");
                     break;
@@ -47,7 +48,6 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
             UpdateId();
             RE::PlayerCharacter::GetSingleton()->KillImmediate();
         }
-
 
         logger::info("CAllBACK LOADED");
     } catch (const std::exception&) {
@@ -75,7 +75,8 @@ void LoadCache() {
 void SaveCache() {
     logger::info("save cache");
 
-    const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin", std::ios::out | std::ios::binary | std::ios::trunc);
+    const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin",
+                                           std::ios::out | std::ios::binary | std::ios::trunc);
 
     if (!fileWriter->IsOpen()) {
         logger::error("File not found");

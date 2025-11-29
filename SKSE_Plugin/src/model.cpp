@@ -8,13 +8,13 @@ void AddFormData(FormRecord* item) {
 }
 
 void AddFormRef(FormRecord* item) {
-	if (!item) {
+    if (!item) {
         return;
     }
     formRef.push_back(item);
 }
 
-void EachFormData(std::function<bool(FormRecord*)> const& iteration) {
+void EachFormData(const std::function<bool(FormRecord*)>& iteration) {
     for (const auto item : formData) {
         if (!iteration(item)) {
             return;
@@ -22,7 +22,7 @@ void EachFormData(std::function<bool(FormRecord*)> const& iteration) {
     }
 }
 
-void EachFormRef(std::function<bool(FormRecord*)> const& iteration) {
+void EachFormRef(const std::function<bool(FormRecord*)>& iteration) {
     for (const auto item : formRef) {
         if (!iteration(item)) {
             return;

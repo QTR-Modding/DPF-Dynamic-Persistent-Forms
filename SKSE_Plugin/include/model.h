@@ -17,9 +17,9 @@ void AddFormData(FormRecord* item);
 
 void AddFormRef(FormRecord* item);
 
-void EachFormData(std::function<bool(FormRecord*)> const& iteration);
+void EachFormData(const std::function<bool(FormRecord*)>& iteration);
 
-void EachFormRef(std::function<bool(FormRecord*)> const& iteration);
+void EachFormRef(const std::function<bool(FormRecord*)>& iteration);
 
 
 void incrementLastFormID();

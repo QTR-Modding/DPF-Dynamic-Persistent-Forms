@@ -7,12 +7,11 @@
 
 template <typename T>
 void StoreAllFormRecords(Serializer<T>* serializer) {
-
     const size_t sizeData = formData.size();
     const size_t sizeRef = formRef.size();
 
-    serializer->Write<uint32_t>(static_cast<uint32_t>(sizeData));
-    serializer->Write<uint32_t>(static_cast<uint32_t>(sizeRef));
+    serializer->template Write<uint32_t>(static_cast<uint32_t>(sizeData));
+    serializer->template Write<uint32_t>(static_cast<uint32_t>(sizeRef));
     logger::info("write forms");
 
     EachFormData([&](FormRecord* instance) {
@@ -40,11 +39,10 @@ void StoreAllFormRecords(Serializer<T>* serializer) {
 
 template <typename T>
 bool RestoreAllFormRecords(Serializer<T>* serializer) {
-
     bool formRecordCreated = false;
 
-    const uint32_t sizeData = serializer->Read<uint32_t>();
-    const uint32_t sizeRef = serializer->Read<uint32_t>();
+    const uint32_t sizeData = serializer->template Read<uint32_t>();
+    const uint32_t sizeRef = serializer->template Read<uint32_t>();
     logger::info("number of items {}", sizeData);
 
     for (uint32_t i = 0; i < sizeData; i++) {
@@ -76,19 +74,15 @@ bool RestoreAllFormRecords(Serializer<T>* serializer) {
         RestoreFormRecordData(serializer, instance);
     }
 
-
-
     return formRecordCreated;
 }
 
 
-
 template <typename T>
 static void StoreFormRecord(Serializer<T>* serializer, FormRecord* instance, const bool reference) {
-
     serializer->StartWritingSection();
 
-    serializer->Write<char>(instance->deleted ? 1 : 0);
+    serializer->template Write<char>(instance->deleted ? 1 : 0);
 
     if (!instance->deleted) {
         if (reference) {
@@ -112,7 +106,7 @@ static void StoreFormRecord(Serializer<T>* serializer, FormRecord* instance, con
 template <typename T>
 static void StoreFormRecordData(Serializer<T>* serializer, FormRecord* instance) {
     serializer->StartWritingSection();
-    serializer->Write<char>(instance->deleted ? 1 : 0);
+    serializer->template Write<char>(instance->deleted ? 1 : 0);
     if (!instance->deleted) {
         StoreEachFormData(serializer, instance);
     }
@@ -120,13 +114,12 @@ static void StoreFormRecordData(Serializer<T>* serializer, FormRecord* instance)
 }
 
 
-
 template <typename T>
 static bool RestoreFormRecord(Serializer<T>* serializer, const uint32_t i, const bool reference) {
     FormRecord* instance = nullptr;
     bool createdRecord = false;
     serializer->startReadingSection();
-    auto deleted = serializer->Read<char>();
+    auto deleted = serializer->template Read<char>();
 
     if (deleted == 1) {
         auto formId = serializer->ReadFormId();
@@ -139,9 +132,7 @@ static bool RestoreFormRecord(Serializer<T>* serializer, const uint32_t i, const
                 auto deletedInstance = FormRecord::CreateDeleted(formId);
                 AddFormRef(deletedInstance);
             }
-        } 
-        else
-        {
+        } else {
             if (i < formData.size()) {
                 instance = formData[i];
                 instance->deleted = true;
@@ -166,11 +157,10 @@ static bool RestoreFormRecord(Serializer<T>* serializer, const uint32_t i, const
     }
 
     return createdRecord;
-
 }
+
 template <typename T>
 static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance) {
-
     bool createdRecord = false;
     logger::info("changed form");
     auto actualForm = serializer->ReadFormRef();
@@ -188,7 +178,6 @@ static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance)
         return false;
     }
 
-
     if (!instance) {
         logger::info("ref instance not found creating it");
         instance = FormRecord::CreateReference(actualForm);
@@ -197,13 +186,11 @@ static bool RestoreModifiedItem(Serializer<T>* serializer, FormRecord* instance)
         createdRecord = true;
     }
 
-
     instance->modelForm = modelForm;
     instance->deleted = false;
     instance->actualForm = actualForm;
 
     applyPattern(instance);
-
 
     return createdRecord;
 }
@@ -238,8 +225,7 @@ static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) 
         current->SetFormID(id, false);
         instance->Undelete(current, baseForm->GetFormType());
         createdRecord = true;
-    }
-    else if (!instance) {
+    } else if (!instance) {
         logger::warn("instance not found creating it");
         auto factory = RE::IFormFactory::GetFormFactoryByType(baseForm->GetFormType());
         RE::TESForm* current = factory->Create();
@@ -253,19 +239,16 @@ static bool RestoreCreatedItem(Serializer<T>* serializer, FormRecord* instance) 
     instance->modelForm = modelForm;
     instance->formId = id;
 
-
     applyPattern(instance);
-
 
     return createdRecord;
 }
 
 template <typename T>
 static void RestoreFormRecordData(Serializer<T>* serializer, FormRecord* instance) {
-
     serializer->startReadingSection();
 
-    auto deleted = serializer->Read<char>();
+    auto deleted = serializer->template Read<char>();
 
     if (deleted == 1) {
         logger::info("deleted");
@@ -276,7 +259,7 @@ static void RestoreFormRecordData(Serializer<T>* serializer, FormRecord* instanc
     if (!instance->actualForm) {
         logger::info("missing actual form");
         serializer->finishReadingSection();
-        return; 
+        return;
     }
 
     RestoreEachFormData(serializer, instance);

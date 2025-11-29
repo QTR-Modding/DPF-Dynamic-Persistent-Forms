@@ -4,7 +4,7 @@ FormRecord::FormRecord(RE::TESForm* _actualForm) {
     actualForm = _actualForm;
 }
 
-FormRecord* FormRecord::CreateNew(RE::TESForm* _actualForm, RE::FormType formType, RE::FormID formId) {
+FormRecord* FormRecord::CreateNew(RE::TESForm* _actualForm, const RE::FormType formType, const RE::FormID formId) {
     if (!_actualForm) {
         return nullptr;
     }
@@ -23,7 +23,7 @@ FormRecord* FormRecord::CreateReference(RE::TESForm* _actualForm) {
     return result;
 }
 
-FormRecord* FormRecord::CreateDeleted(RE::FormID formId) {
+FormRecord* FormRecord::CreateDeleted(const RE::FormID formId) {
     const auto result = new FormRecord();
     result->formId = formId;
     result->deleted = true;
@@ -39,7 +39,7 @@ void FormRecord::UndeleteReference(RE::TESForm* _actualForm) {
     formId = _actualForm->GetFormID();
 }
 
-void FormRecord::Undelete(RE::TESForm* _actualForm, RE::FormType _formType) {
+void FormRecord::Undelete(RE::TESForm* _actualForm, const RE::FormType _formType) {
     if (!_actualForm) {
         return;
     }

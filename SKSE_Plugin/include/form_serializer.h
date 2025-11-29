@@ -21,6 +21,7 @@ public:
         auto name = form->GetName();
         serializer->WriteString(name);
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         auto* name = serializer->ReadString();
         auto named = form->As<RE::TESFullName>();
@@ -28,6 +29,7 @@ public:
             named->fullName = name;
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESFullName>(); }
 };
 
@@ -38,19 +40,23 @@ public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto spell = form->As<RE::SpellItem>();
         if (spell) {
-            serializer->Write<char>(((spell->data.flags & RE::SpellItem::SpellFlag::kCostOverride) == RE::SpellItem::SpellFlag::kCostOverride)?1:0);
-            serializer->Write<int32_t>(spell->data.costOverride);
-            serializer->Write<float>(spell->data.chargeTime);
-            serializer->Write<float>(spell->data.castDuration);
-            serializer->Write<float>(spell->data.range);
+            serializer->template Write<char>(
+            ((spell->data.flags & RE::SpellItem::SpellFlag::kCostOverride) ==
+             RE::SpellItem::SpellFlag::kCostOverride)
+                ? 1
+                : 0);
+            serializer->template Write<int32_t>(spell->data.costOverride);
+            serializer->template Write<float>(spell->data.chargeTime);
+            serializer->template Write<float>(spell->data.castDuration);
+            serializer->template Write<float>(spell->data.range);
             serializer->WriteFormRef(spell->data.castingPerk);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto spell = form->As<RE::SpellItem>();
         if (spell) {
-
-            const char costOverride = serializer->Read<char>();
+            const char costOverride = serializer->template Read<char>();
 
             if (costOverride == 1) {
                 spell->data.flags |= RE::SpellItem::SpellFlag::kCostOverride;
@@ -59,35 +65,39 @@ public:
                     ~static_cast<std::uint32_t>(RE::SpellItem::SpellFlag::kCostOverride));
             }
 
-            spell->data.costOverride = serializer->Read<int32_t>();
-            spell->data.chargeTime = serializer->Read<float>();
-            spell->data.castDuration = serializer->Read<float>();
-            spell->data.range = serializer->Read<float>();
-            spell->data.castingPerk = serializer->ReadFormRef<RE::BGSPerk>();
+            spell->data.costOverride = serializer->template Read<int32_t>();
+            spell->data.chargeTime = serializer->template Read<float>();
+            spell->data.castDuration = serializer->template Read<float>();
+            spell->data.range = serializer->template Read<float>();
+            spell->data.castingPerk = serializer->template ReadFormRef<RE::BGSPerk>();
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::SpellItem>(); }
 };
+
 template <typename T>
 class AmmoSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto ammo = form->As<RE::TESAmmo>();
         if (ammo) {
-            serializer->Write<float>(ammo->GetRuntimeData().data.damage);
+            serializer->template Write<float>(ammo->GetRuntimeData().data.damage);
             serializer->WriteFormRef(ammo->GetRuntimeData().data.projectile);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto ammo = form->As<RE::TESAmmo>();
         if (ammo) {
-            ammo->GetRuntimeData().data.damage = serializer->Read<float>();
-            auto projectile = serializer->ReadFormRef<RE::BGSProjectile>();
+            ammo->GetRuntimeData().data.damage = serializer->template Read<float>();
+            auto projectile = serializer->template ReadFormRef<RE::BGSProjectile>();
             if (projectile) {
                 ammo->GetRuntimeData().data.projectile = projectile;
             }
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESAmmo>(); }
 };
 
@@ -97,22 +107,24 @@ public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto soulGem = form->As<RE::TESSoulGem>();
         if (soulGem) {
-            serializer->Write<uint8_t>(static_cast<uint8_t>(soulGem->currentSoul.get()));
-            serializer->Write<uint8_t>(static_cast<uint8_t>(soulGem->soulCapacity.get()));
+            serializer->template Write<uint8_t>(static_cast<uint8_t>(soulGem->currentSoul.get()));
+            serializer->template Write<uint8_t>(static_cast<uint8_t>(soulGem->soulCapacity.get()));
             serializer->WriteFormRef(soulGem->linkedSoulGem);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto soulGem = form->As<RE::TESSoulGem>();
         if (soulGem) {
-            soulGem->currentSoul = static_cast<RE::SOUL_LEVEL>(serializer->Read<uint8_t>());
-            soulGem->soulCapacity = static_cast<RE::SOUL_LEVEL>(serializer->Read<uint8_t>());
-            auto target = serializer->ReadFormRef<RE::TESSoulGem>();
+            soulGem->currentSoul = static_cast<RE::SOUL_LEVEL>(serializer->template Read<uint8_t>());
+            soulGem->soulCapacity = static_cast<RE::SOUL_LEVEL>(serializer->template Read<uint8_t>());
+            auto target = serializer->template ReadFormRef<RE::TESSoulGem>();
             if (target) {
                 soulGem->linkedSoulGem = target;
             }
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESSoulGem>(); }
 };
 
@@ -122,20 +134,22 @@ public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto enchantment = form->As<RE::EnchantmentItem>();
         if (enchantment) {
-            serializer->Write<char>(((enchantment->data.flags & RE::EnchantmentItem::EnchantmentFlag::kCostOverride) ==
-                                     RE::EnchantmentItem::EnchantmentFlag::kCostOverride)
-                                        ? 1
-                                        : 0);
+            serializer->template Write<char>(
+            ((enchantment->data.flags & RE::EnchantmentItem::EnchantmentFlag::kCostOverride) ==
+             RE::EnchantmentItem::EnchantmentFlag::kCostOverride)
+                ? 1
+                : 0);
 
-            serializer->Write<int32_t>(enchantment->data.costOverride);
-            serializer->Write<int32_t>(enchantment->data.chargeOverride);
-            serializer->Write<float>(enchantment->data.chargeTime);
+            serializer->template Write<int32_t>(enchantment->data.costOverride);
+            serializer->template Write<int32_t>(enchantment->data.chargeOverride);
+            serializer->template Write<float>(enchantment->data.chargeTime);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto enchantment = form->As<RE::EnchantmentItem>();
         if (enchantment) {
-            const char costOverride = serializer->Read<char>();
+            const char costOverride = serializer->template Read<char>();
 
             if (costOverride == 1) {
                 enchantment->data.flags |= RE::EnchantmentItem::EnchantmentFlag::kCostOverride;
@@ -144,11 +158,12 @@ public:
                     ~static_cast<std::uint32_t>(RE::EnchantmentItem::EnchantmentFlag::kCostOverride));
             }
 
-            enchantment->data.costOverride = serializer->Read<int32_t>();
-            enchantment->data.chargeOverride = serializer->Read<int32_t>();
-            enchantment->data.chargeTime = serializer->Read<float>();
+            enchantment->data.costOverride = serializer->template Read<int32_t>();
+            enchantment->data.chargeOverride = serializer->template Read<int32_t>();
+            enchantment->data.chargeTime = serializer->template Read<float>();
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::EnchantmentItem>(); }
 };
 
@@ -157,15 +172,17 @@ class ValueSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         auto name = form->GetGoldValue();
-        serializer->Write<int32_t>(name);
+        serializer->template Write<int32_t>(name);
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        auto value = serializer->Read<int32_t>();
+        auto value = serializer->template Read<int32_t>();
         auto named = form->As<RE::TESValueForm>();
         if (named && value) {
             named->value = value;
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESValueForm>(); }
 };
 
@@ -174,15 +191,17 @@ class WeightSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         auto name = form->GetWeight();
-        serializer->Write<float>(name);
+        serializer->template Write<float>(name);
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        auto weight = serializer->Read<float>();
+        auto weight = serializer->template Read<float>();
         auto named = form->As<RE::TESWeightForm>();
         if (named && weight) {
             named->weight = weight;
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESWeightForm>(); }
 };
 
@@ -193,30 +212,30 @@ public:
         const auto potion = form->As<RE::MagicItem>();
         if (potion) {
             const size_t length = potion->effects.size();
-            serializer->Write<uint32_t>(static_cast<uint32_t>(length));
+            serializer->template Write<uint32_t>(static_cast<uint32_t>(length));
             for (uint32_t i = 0; i < length; i++) {
                 const auto effect = potion->effects[i];
                 serializer->WriteFormRef(effect->baseEffect);
-                serializer->Write<float>(effect->GetMagnitude());
-                serializer->Write<uint32_t>(effect->GetArea());
-                serializer->Write<uint32_t>(effect->GetDuration());
-                serializer->Write<float>(effect->cost);
+                serializer->template Write<float>(effect->GetMagnitude());
+                serializer->template Write<uint32_t>(effect->GetArea());
+                serializer->template Write<uint32_t>(effect->GetDuration());
+                serializer->template Write<float>(effect->cost);
             }
-
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto potion = form->As<RE::MagicItem>();
         if (potion) {
             potion->effects.clear();
-            const size_t numEffects = serializer->Read<uint32_t>();
+            const size_t numEffects = serializer->template Read<uint32_t>();
 
             for (size_t i = 0; i < numEffects; i++) {
-                auto effectForm = serializer->ReadFormRef<RE::EffectSetting>();
-                auto magnitude = serializer->Read<float>();
-                auto area = serializer->Read<uint32_t>();
-                auto duration = serializer->Read<uint32_t>();
-                auto cost = serializer->Read<float>();
+                auto effectForm = serializer->template ReadFormRef<RE::EffectSetting>();
+                auto magnitude = serializer->template Read<float>();
+                auto area = serializer->template Read<uint32_t>();
+                auto duration = serializer->template Read<uint32_t>();
+                auto cost = serializer->template Read<float>();
 
                 if (effectForm) {
                     bool found = false;
@@ -243,6 +262,7 @@ public:
             }
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::MagicItem>(); }
 };
 
@@ -252,26 +272,27 @@ public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto enchanted = form->As<RE::TESEnchantableForm>();
         if (enchanted && enchanted->formEnchanting) {
-            serializer->Write<char>(1);
+            serializer->template Write<char>(1);
             serializer->WriteFormRef(enchanted->formEnchanting);
-            serializer->Write<uint16_t>(enchanted->amountofEnchantment);
-
+            serializer->template Write<uint16_t>(enchanted->amountofEnchantment);
         } else {
-            serializer->Write<char>(0);
+            serializer->template Write<char>(0);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto enchanted = form->As<RE::TESEnchantableForm>();
-        const int32_t hasEffects = serializer->Read<char>();
+        const int32_t hasEffects = serializer->template Read<char>();
         if (hasEffects == 1) {
-            auto enchantment = serializer->ReadFormRef<RE::EnchantmentItem>();
-            auto ammount = serializer->Read<uint16_t>();
+            auto enchantment = serializer->template ReadFormRef<RE::EnchantmentItem>();
+            auto ammount = serializer->template Read<uint16_t>();
             if (enchantment) {
                 enchanted->formEnchanting = enchantment;
                 enchanted->amountofEnchantment = ammount;
             }
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESEnchantableForm>(); }
 };
 
@@ -280,15 +301,17 @@ class ArmorSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
         auto* amor = form->As<RE::TESObjectARMO>();
-        serializer->Write<uint32_t>(amor->armorRating);
+        serializer->template Write<uint32_t>(amor->armorRating);
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        auto armorRating = serializer->Read<uint32_t>();
+        auto armorRating = serializer->template Read<uint32_t>();
         auto* target = form->As<RE::TESObjectARMO>();
         if (target) {
             target->armorRating = armorRating;
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESObjectARMO>(); }
 };
 
@@ -299,31 +322,33 @@ public:
         const auto sourceModelWeapon = form->As<RE::TESObjectWEAP>();
         if (sourceModelWeapon) {
             serializer->WriteFormRef(sourceModelWeapon->criticalData.effect);
-            serializer->Write<uint16_t>(sourceModelWeapon->attackDamage);
-            serializer->Write<uint16_t>(sourceModelWeapon->criticalData.damage);
-            serializer->Write<float>(sourceModelWeapon->weaponData.speed);
-            serializer->Write<float>(sourceModelWeapon->weaponData.reach);
-            serializer->Write<float>(sourceModelWeapon->weaponData.minRange);
-            serializer->Write<float>(sourceModelWeapon->weaponData.maxRange);
-            serializer->Write<float>(sourceModelWeapon->weaponData.staggerValue);
+            serializer->template Write<uint16_t>(sourceModelWeapon->attackDamage);
+            serializer->template Write<uint16_t>(sourceModelWeapon->criticalData.damage);
+            serializer->template Write<float>(sourceModelWeapon->weaponData.speed);
+            serializer->template Write<float>(sourceModelWeapon->weaponData.reach);
+            serializer->template Write<float>(sourceModelWeapon->weaponData.minRange);
+            serializer->template Write<float>(sourceModelWeapon->weaponData.maxRange);
+            serializer->template Write<float>(sourceModelWeapon->weaponData.staggerValue);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto target = form->As<RE::TESObjectWEAP>();
         if (target) {
-            auto effect = serializer->ReadFormRef<RE::SpellItem>();
+            auto effect = serializer->template ReadFormRef<RE::SpellItem>();
             if (effect) {
                 target->criticalData.effect = effect;
             }
-            target->attackDamage = serializer->Read<uint16_t>();
-            target->criticalData.damage = serializer->Read<uint16_t>();;
-            target->weaponData.speed = serializer->Read<float>();
-            target->weaponData.reach = serializer->Read<float>();
-            target->weaponData.minRange = serializer->Read<float>();
-            target->weaponData.maxRange = serializer->Read<float>();
-            target->weaponData.staggerValue = serializer->Read<float>();
+            target->attackDamage = serializer->template Read<uint16_t>();
+            target->criticalData.damage = serializer->template Read<uint16_t>();
+            target->weaponData.speed = serializer->template Read<float>();
+            target->weaponData.reach = serializer->template Read<float>();
+            target->weaponData.minRange = serializer->template Read<float>();
+            target->weaponData.maxRange = serializer->template Read<float>();
+            target->weaponData.staggerValue = serializer->template Read<float>();
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESObjectWEAP>(); }
 };
 
@@ -334,8 +359,9 @@ public:
         const auto book = form->As<RE::TESObjectBOOK>();
         serializer->WriteFormRef(book->data.teaches.spell);
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        auto spell = serializer->ReadFormRef<RE::SpellItem>();
+        auto spell = serializer->template ReadFormRef<RE::SpellItem>();
         auto book = form->As<RE::TESObjectBOOK>();
 
         if (spell && book) {
@@ -343,6 +369,7 @@ public:
             book->data.teaches.spell = spell;
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESObjectBOOK>(); }
 };
 
@@ -350,37 +377,38 @@ template <typename T>
 class LeveledItemSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        const auto leveledList = form->As<RE::TESLeveledList>(); 
+        const auto leveledList = form->As<RE::TESLeveledList>();
         if (leveledList) {
-            serializer->Write<int8_t>(leveledList->chanceNone);
-            serializer->Write<uint8_t>(leveledList->numEntries);
+            serializer->template Write<int8_t>(leveledList->chanceNone);
+            serializer->template Write<uint8_t>(leveledList->numEntries);
             //serializer->Write<uint8_t>(static_cast<uint8_t>(leveledList->llFlags));
             serializer->WriteFormRef(leveledList->chanceGlobal);
             auto size = static_cast<uint32_t>(leveledList->entries.size());
-            serializer->Write<uint32_t>(size);
+            serializer->template Write<uint32_t>(size);
             for (auto item : leveledList->entries) {
-                serializer->Write<uint16_t>(item.count);
-                serializer->Write<uint16_t>(item.level);
+                serializer->template Write<uint16_t>(item.count);
+                serializer->template Write<uint16_t>(item.level);
                 serializer->WriteFormRef(item.form);
             }
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto leveledList = form->As<RE::TESLeveledList>();
         if (leveledList) {
-            leveledList->chanceNone = serializer->Read<int8_t>();
-            leveledList->numEntries = serializer->Read<uint8_t>();
+            leveledList->chanceNone = serializer->template Read<int8_t>();
+            leveledList->numEntries = serializer->template Read<uint8_t>();
             //leveledList->llFlags = static_cast<RE::TESLeveledList::Flag>(serializer->Read<uint8_t>());
-            auto global = serializer->ReadFormRef<RE::TESGlobal>();
-            if (global){
+            auto global = serializer->template ReadFormRef<RE::TESGlobal>();
+            if (global) {
                 leveledList->chanceGlobal = global;
             }
-            auto size = serializer->Read<uint32_t>();
+            auto size = serializer->template Read<uint32_t>();
             leveledList->entries.resize(static_cast<size_t>(size));
             for (uint32_t i = 0; i < size; ++i) {
                 leveledList->entries[i] = RE::LEVELED_OBJECT();
-                auto count = serializer->Read<uint16_t>();
-                auto level = serializer->Read<uint16_t>();
+                auto count = serializer->template Read<uint16_t>();
+                auto level = serializer->template Read<uint16_t>();
                 auto newForm = serializer->ReadFormRef();
                 if (form) {
                     leveledList->entries[i].count = count;
@@ -389,8 +417,8 @@ public:
                 }
             }
         }
-
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESLeveledList>(); }
 };
 
@@ -398,17 +426,18 @@ template <typename T>
 class ProduceFormSerializer : public FormSerializer<T> {
 public:
     void Serialize(Serializer<T>* serializer, RE::TESForm* form) override {
-        const auto produceForm = form->As<RE::TESProduceForm>(); 
+        const auto produceForm = form->As<RE::TESProduceForm>();
         if (produceForm) {
             serializer->WriteFormRef(produceForm->harvestSound);
             serializer->WriteFormRef(produceForm->produceItem);
         }
     }
+
     void Deserialize(Serializer<T>* serializer, RE::TESForm* form) override {
         const auto produceForm = form->As<RE::TESProduceForm>();
         if (produceForm) {
-            auto sound = serializer->ReadFormRef<RE::BGSSoundDescriptorForm>();
-            auto item = serializer->ReadFormRef<RE::TESBoundObject>();
+            auto sound = serializer->template ReadFormRef<RE::BGSSoundDescriptorForm>();
+            auto item = serializer->template ReadFormRef<RE::TESBoundObject>();
             if (sound) {
                 produceForm->harvestSound = sound;
             }
@@ -417,6 +446,7 @@ public:
             }
         }
     }
+
     bool Condition(RE::TESForm* form) override { return form->As<RE::TESProduceForm>(); }
 };
 
@@ -439,7 +469,6 @@ public:
 
 template <typename T>
 void StoreEachFormData(Serializer<T>* serializer, FormRecord* elem) {
-
     if (!elem || !serializer) {
         return;
     }
@@ -448,43 +477,43 @@ void StoreEachFormData(Serializer<T>* serializer, FormRecord* elem) {
 
     GetFilters();
 
-    serializer->Write<uint32_t>(static_cast<uint32_t>(filters.size()));
+    serializer->template Write<uint32_t>(static_cast<uint32_t>(filters.size()));
 
     for (auto& filter : filters) {
         serializer->StartWritingSection();
         if (elem->actualForm && filter->Condition(elem->actualForm)) {
-            serializer->Write<char>(1);
+            serializer->template Write<char>(1);
             filter->Serialize(serializer, elem->actualForm);
         } else {
-            serializer->Write<char>(0);
+            serializer->template Write<char>(0);
         }
         serializer->finishWritingSection();
     }
 }
+
 template <typename T>
 void RestoreEachFormData(Serializer<T>* serializer, FormRecord* elem) {
+    if (!elem || !serializer) {
+        return;
+    }
 
-     if (!elem || !serializer) {
-         return;
-     }
+    std::vector<std::unique_ptr<FormSerializer<T>>> filters;
 
-     std::vector<std::unique_ptr<FormSerializer<T>>> filters;
+    GetFilters();
 
-     GetFilters();
+    auto size = serializer->template Read<uint32_t>();
+    uint32_t i = 0;
 
-     auto size = serializer->Read<uint32_t>();
-     uint32_t i = 0;
-
-     for (auto& filter : filters) {
-         if (i >= size) {
-             break;
-         }
-         serializer->startReadingSection();
-         auto kind = serializer->Read<char>();
-         if (kind == 1 && elem->actualForm) {
+    for (auto& filter : filters) {
+        if (i >= size) {
+            break;
+        }
+        serializer->startReadingSection();
+        auto kind = serializer->template Read<char>();
+        if (kind == 1 && elem->actualForm) {
             filter->Deserialize(serializer, elem->actualForm);
-         }
-         serializer->finishReadingSection();
-         ++i;
-     }
- }
+        }
+        serializer->finishReadingSection();
+        ++i;
+    }
+}

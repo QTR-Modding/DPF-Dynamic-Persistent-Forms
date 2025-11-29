@@ -17,8 +17,8 @@ void UnTrack(RE::StaticFunctionTag*, RE::TESForm* form) {
     Services::UnTrack(form);
 }
 
-void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting* effect, float magnitude,
-    uint32_t area, uint32_t duration, float cost) {
+void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting* effect, const float magnitude,
+                    const uint32_t area, const uint32_t duration, const float cost) {
     std::lock_guard lock(papyrusMutex);
     try {
         logger::trace("added");
@@ -38,9 +38,7 @@ void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting
             newEffect->effectItem.duration = duration;
             magicItem->effects.push_back(newEffect);
         }
-
-    } 
-    catch (const std::exception&) {
+    } catch (const std::exception&) {
     }
 }
 
@@ -66,9 +64,7 @@ void CopyMagicEffects(RE::StaticFunctionTag*, RE::TESForm* from, RE::TESForm* to
                 newEffect->effectItem.duration = item->effectItem.duration;
                 magicItemTo->effects.push_back(newEffect);
             }
-
         }
-
     } catch (const std::exception&) {
     }
 }
@@ -80,7 +76,6 @@ void Dispose(RE::StaticFunctionTag*, RE::TESForm* form) {
 void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
     std::lock_guard lock(papyrusMutex);
     try {
-
         if (!item) {
             return;
         }
@@ -92,16 +87,13 @@ void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
         if (magicItem) {
             magicItem->effects.clear();
         }
-
-    } 
-    catch (const std::exception&) {
+    } catch (const std::exception&) {
     }
 }
 
 void CopyAppearance(RE::StaticFunctionTag*, RE::TESForm* source, RE::TESForm* target) {
     std::lock_guard lock(papyrusMutex);
     try {
-
         if (!source || !target) {
             return;
         }
@@ -122,9 +114,7 @@ void CopyAppearance(RE::StaticFunctionTag*, RE::TESForm* source, RE::TESForm* ta
             return true;
         });
 
-
         copyAppearence(source, target);
-
     } catch (const std::exception&) {
         logger::error("error copying model");
     }
@@ -138,13 +128,12 @@ void SetSpellTomeSpell(RE::StaticFunctionTag*, RE::TESObjectBOOK* spellTome, RE:
         }
         spellTome->data.flags = RE::OBJ_BOOK::Flag::kTeachesSpell;
         spellTome->data.teaches.spell = spell;
-    } 
-    catch (const std::exception&) {
+    } catch (const std::exception&) {
         logger::error("add spell");
     }
 }
 
-void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, bool autoCalculate) {
+void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, const bool autoCalculate) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -154,13 +143,12 @@ void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, bool au
     if (!autoCalculate) {
         spell->data.flags |= RE::SpellItem::SpellFlag::kCostOverride;
     } else {
-        spell->data.flags &= static_cast<RE::SpellItem::SpellFlag>(~static_cast<uint32_t>(RE::SpellItem::SpellFlag::kCostOverride));
+        spell->data.flags &= static_cast<RE::SpellItem::SpellFlag>(~static_cast<uint32_t>(
+            RE::SpellItem::SpellFlag::kCostOverride));
     }
-
 }
 
-void SetSpellCostOverride(RE::StaticFunctionTag*, RE::SpellItem* spell, uint32_t costOverride) {
-
+void SetSpellCostOverride(RE::StaticFunctionTag*, RE::SpellItem* spell, const uint32_t costOverride) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -170,7 +158,7 @@ void SetSpellCostOverride(RE::StaticFunctionTag*, RE::SpellItem* spell, uint32_t
     spell->data.costOverride = costOverride;
 }
 
-void SetSpellChargeTime(RE::StaticFunctionTag*, RE::SpellItem* spell, float chargeTime) {
+void SetSpellChargeTime(RE::StaticFunctionTag*, RE::SpellItem* spell, const float chargeTime) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -180,7 +168,7 @@ void SetSpellChargeTime(RE::StaticFunctionTag*, RE::SpellItem* spell, float char
     spell->data.chargeTime = chargeTime;
 }
 
-void SetSpellCastDuration(RE::StaticFunctionTag*, RE::SpellItem* spell, float castDuration) {
+void SetSpellCastDuration(RE::StaticFunctionTag*, RE::SpellItem* spell, const float castDuration) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -190,7 +178,7 @@ void SetSpellCastDuration(RE::StaticFunctionTag*, RE::SpellItem* spell, float ca
     spell->data.castDuration = castDuration;
 }
 
-void SetSpellRange(RE::StaticFunctionTag*, RE::SpellItem* spell, float range) {
+void SetSpellRange(RE::StaticFunctionTag*, RE::SpellItem* spell, const float range) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -210,7 +198,7 @@ void SetSpellCastingPerk(RE::StaticFunctionTag*, RE::SpellItem* spell, RE::BGSPe
     spell->data.castingPerk = perk;
 }
 
-void SetEnchantmentAutoCalculate(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, bool autoCalculate) {
+void SetEnchantmentAutoCalculate(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, const bool autoCalculate) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -221,11 +209,12 @@ void SetEnchantmentAutoCalculate(RE::StaticFunctionTag*, RE::EnchantmentItem* sp
         spell->data.flags |= RE::EnchantmentItem::EnchantmentFlag::kCostOverride;
     } else {
         spell->data.flags &=
-            static_cast<RE::EnchantmentItem::EnchantmentFlag>(~static_cast<uint32_t>(RE::EnchantmentItem::EnchantmentFlag::kCostOverride));
+            static_cast<RE::EnchantmentItem::EnchantmentFlag>(~static_cast<uint32_t>(
+                RE::EnchantmentItem::EnchantmentFlag::kCostOverride));
     }
 }
 
-void SetEnchantmentChargeOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, uint32_t costOverride) {
+void SetEnchantmentChargeOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, const uint32_t costOverride) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -235,7 +224,7 @@ void SetEnchantmentChargeOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* s
     spell->data.chargeOverride = costOverride;
 }
 
-void SetEnchantmentCostOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, uint32_t costOverride) {
+void SetEnchantmentCostOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, const uint32_t costOverride) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -246,7 +235,7 @@ void SetEnchantmentCostOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spe
     spell->data.costOverride = costOverride;
 }
 
-void SetEnchantmentChargeTime(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, float chargeTime) {
+void SetEnchantmentChargeTime(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, const float chargeTime) {
     std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
@@ -255,7 +244,7 @@ void SetEnchantmentChargeTime(RE::StaticFunctionTag*, RE::EnchantmentItem* spell
     spell->data.chargeTime = chargeTime;
 }
 
-void SetAmmoDamage(RE::StaticFunctionTag*, RE::TESAmmo* ammo, float damage) {
+void SetAmmoDamage(RE::StaticFunctionTag*, RE::TESAmmo* ammo, const float damage) {
     std::lock_guard lock(papyrusMutex);
 
     if (!ammo) {
@@ -295,7 +284,6 @@ void SetSoulGemCurrentSoul(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint
     }
 
     soulGem->currentSoul = value;
-
 }
 
 void LinkSoulGems(RE::StaticFunctionTag*, RE::TESSoulGem* empty, RE::TESSoulGem* filled) {

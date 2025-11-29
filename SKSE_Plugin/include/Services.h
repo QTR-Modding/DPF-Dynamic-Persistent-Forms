@@ -19,7 +19,6 @@ namespace DPF {
         virtual void Dispose(RE::TESForm* form) = 0;
         virtual void Track(RE::TESForm* item) = 0;
         virtual void UnTrack(RE::TESForm* item) = 0;
-
     };
 }
 

@@ -6,7 +6,7 @@ RE::TESForm* Services::Create(RE::TESForm* baseItem) {
     std::lock_guard lock(serviceMutex);
     try {
         if (!baseItem) return nullptr;
-            
+
         auto* newForm = AddForm(baseItem);
         if (newForm) {
             logger::info("new form id", newForm->GetFormID());
@@ -32,12 +32,13 @@ void Services::Track(RE::TESForm* baseItem) {
                 return false;
             }
             // Correção da lógica original que parecia ter um if duplicado
-            return true; 
+            return true;
         });
         if (!found) {
             AddFormRef(FormRecord::CreateReference(baseItem));
         }
-    } catch (...) {}
+    } catch (...) {
+    }
 }
 
 void Services::UnTrack(RE::TESForm* form) {
@@ -51,7 +52,8 @@ void Services::UnTrack(RE::TESForm* form) {
             }
             return true;
         });
-    } catch (...) {}
+    } catch (...) {
+    }
 }
 
 void Services::Dispose(RE::TESForm* form) {
@@ -71,9 +73,6 @@ void Services::Dispose(RE::TESForm* form) {
             }
             return true;
         });
-
-
-    }
-    catch (const std::exception&) {
+    } catch (const std::exception&) {
     }
 }

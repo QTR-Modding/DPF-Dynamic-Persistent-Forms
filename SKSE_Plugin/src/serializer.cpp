@@ -16,7 +16,7 @@ uint32_t StreamWrapper::Size() {
     return static_cast<uint32_t>(size);
 }
 
-void StreamWrapper::WriteDown(std::function<void(uint32_t)> const& start, std::function<void(char)> const& step) {
+void StreamWrapper::WriteDown(const std::function<void(uint32_t)>& start, const std::function<void(char)>& step) {
     const auto size = Size();
     start(size);
     SeekBeginning();
@@ -26,7 +26,7 @@ void StreamWrapper::WriteDown(std::function<void(uint32_t)> const& start, std::f
     Clear();
 }
 
-void StreamWrapper::ReadOut(std::function<uint32_t()> start, std::function<char()> const& step) {
+void StreamWrapper::ReadOut(std::function<uint32_t()> start, const std::function<char()>& step) {
     Clear();
     const uint32_t arrayLength = start();
     for (size_t i = 0; i < arrayLength; i++) {
@@ -37,7 +37,7 @@ void StreamWrapper::ReadOut(std::function<uint32_t()> start, std::function<char(
 
 SaveDataSerializer::SaveDataSerializer(SKSE::SerializationInterface* _a_intfc) { a_intfc = _a_intfc; }
 
-FileWriter::FileWriter(const std::string& filename, std::ios_base::openmode _Mode) {
+FileWriter::FileWriter(const std::string& filename, const std::ios_base::openmode _Mode) {
     fileStream.open(filename, _Mode);
     if (!fileStream.is_open()) {
         logger::error("Error: Unable to open file ");
@@ -50,7 +50,7 @@ FileWriter::~FileWriter() {
     }
 }
 
-FileReader::FileReader(const std::string& filename, std::ios_base::openmode _Mode) {
+FileReader::FileReader(const std::string& filename, const std::ios_base::openmode _Mode) {
     fileStream.open(filename, _Mode);
     if (!fileStream.is_open()) {
         logger::error("Error: Unable to open file");

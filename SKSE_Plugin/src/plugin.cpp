@@ -11,6 +11,7 @@ public:
         static DPFInterfaceImpl instance;
         return &instance;
     }
+
     uint32_t GetVersion() const override {
         return DPF::InterfaceVersion;
     }
@@ -30,7 +31,6 @@ public:
     void UnTrack(RE::TESForm* item) override {
         Services::UnTrack(item);
     }
-
 };
 
 extern "C" __declspec(dllexport) void* GetDPFAPI() {
@@ -44,8 +44,7 @@ namespace {
             ReadFirstFormIdFromESP();
             LoadCache();
             logger::info("loaded");
-        }
-        else if (message->type == SKSE::MessagingInterface::kNewGame) {
+        } else if (message->type == SKSE::MessagingInterface::kNewGame) {
             std::filesystem::remove("DynamicPersistentFormsCache.bin");
             while (formRef.size() > 0) {
                 delete formRef.back();
@@ -75,7 +74,6 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
     SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
 
-
     auto serialization = SKSE::GetSerializationInterface();
     serialization->SetUniqueID('DPF1');
     serialization->SetSaveCallback(SaveCallback);
@@ -83,4 +81,3 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     return true;
 }
-

@@ -91,7 +91,6 @@ void applyPattern(FormRecord* instance) {
             weaponNewForm->impactDataSet = weaponBaseForm->impactDataSet;
             weaponNewForm->templateWeapon = weaponBaseForm->templateWeapon;
             weaponNewForm->embeddedNode = weaponBaseForm->embeddedNode;
-
         } else if (bookBaseForm && bookNewForm) {
             bookNewForm->data.flags = bookBaseForm->data.flags;
             bookNewForm->data.teaches.spell = bookBaseForm->data.teaches.spell;
