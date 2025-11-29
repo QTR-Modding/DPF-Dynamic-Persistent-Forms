@@ -27,4 +27,15 @@ function(copyOutputs TARGET_FOLDER)
         )
     endif()
 
+
+    set(PUBLIC_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/public")
+    set(PUBLIC_OUTPUT_DIR "${TARGET_FOLDER}")
+
+    add_custom_command(
+        TARGET "${PROJECT_NAME}"
+        POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PUBLIC_SOURCE_DIR}" "${PUBLIC_OUTPUT_DIR}"
+        VERBATIM
+    )
+
 endfunction()

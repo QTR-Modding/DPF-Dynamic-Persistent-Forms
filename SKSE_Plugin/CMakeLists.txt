@@ -1,29 +1,45 @@
+# ---------------------------------------------------- #
+#                 Required envs assert                 #
+# ---------------------------------------------------- #
+
 if(NOT DEFINED ENV{COMMONLIB_SSE_FOLDER})
   message(FATAL_ERROR "Missing COMMONLIB_SSE_FOLDER environment variable")
 endif()
 
-include(cmake/headerlist.cmake)
-include(cmake/sourcelist.cmake)
+# ---------------------------------------------------- #
+#               Imports and definitions                #
+# ---------------------------------------------------- #
+
 include(cmake/lib/copyOutputs.cmake)
 include(cmake/lib/automaticGameFolderOutput.cmake)
+include(cmake/lib/autoCollectSources.cmake)
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+add_src_folder(src)
+add_include_folder(include)
 
-# It's recommended to set a minimum CMake version.
-# If you use CMake features from higher versions, update this to match.
+add_src_folder(vendor/src)
+add_include_folder(vendor/include)
+
+
 cmake_minimum_required(VERSION 3.21)
-# Set your project name. This will be the name of your SKSE .dll file.
-set(AUTHOR_NAME "SkyrimThiago")
-set(PRODUCT_NAME "DynamicPersistentForms")
-project(${PRODUCT_NAME} VERSION 1.0.0.0 LANGUAGES CXX)
+set(AUTHOR_NAME "SkyrimThiago & Quantumyilmaz & Viny")
+set(PRODUCT_NAME "DynamicPersistentFroms")
+set(BEAUTIFUL_NAME "Dynamic Persistent Froms")
+
+project(${PRODUCT_NAME} VERSION 2.0.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
+# ---------------------------------------------------- #
+#                      Resources                       #
+# ---------------------------------------------------- #
 
 configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/version.rc
-        @ONLY)
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.rc
+    @ONLY)
 
 set(RESOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 set(RESOURCE_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.res)
@@ -34,13 +50,17 @@ add_custom_command(
     DEPENDS ${RESOURCE_FILE}
 )
 
-# Add a custom target to ensure the resource file is generated
 add_custom_target(Resource ALL DEPENDS ${RESOURCE_OUTPUT})
+
+# ---------------------------------------------------- #
+#                Plugin Configuration                  #
+# ---------------------------------------------------- #
+
 include(FetchContent)
 
 set(ENABLE_SKYRIM_SE ON CACHE BOOL " " FORCE)
 set(ENABLE_SKYRIM_AE ON CACHE BOOL " " FORCE)
-set(ENABLE_SKYRIM_VR ON CACHE BOOL " " FORCE)
+set(ENABLE_SKYRIM_VR OFF CACHE BOOL " " FORCE)
 set(BUILD_TESTS OFF CACHE BOOL " " FORCE)
 
 add_subdirectory("$ENV{COMMONLIB_SSE_FOLDER}" ${CMAKE_CURRENT_BINARY_DIR}/_deps/clib-build)
@@ -66,40 +86,39 @@ add_commonlibsse_plugin(
   AUTHOR AUTHOR_NAME
   SOURCES ${headers} ${sources}
 )
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/PCH.h) # <--- PCH.h is required!
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) 
+target_precompile_headers(${PROJECT_NAME} PRIVATE include/PCH.h)
+target_compile_definitions(${PROJECT_NAME}  PRIVATE BEAUTIFUL_NAME="${BEAUTIFUL_NAME}" IMGUI_DEFINE_MATH_OPERATORS)
+
+
+set(header_dirs "")
+
+foreach(header ${headers})
+    get_filename_component(dir ${header} DIRECTORY)
+    list(APPEND header_dirs ${dir})
+endforeach()
+
+list(REMOVE_DUPLICATES header_dirs)
+
 target_include_directories(
 	${PROJECT_NAME}
 	PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${header_dirs}
 )
 
-if (MSVC)
-  # Good default
-  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+find_library(DIRECTXTK_LIBRARY NAMES DirectXTK PATHS ${CMAKE_BINARY_DIR}/debug/vcpkg_installed/x64-windows-static/lib)
+target_link_libraries(
+	${PROJECT_NAME}
+	PRIVATE
+         ${DIRECTXTK_LIBRARY}
+)
 
-  # If you really want MSVC to warn on truly unused (internal-linkage) functions (C4505),
-  # enable /Wall. It is very noisy, so consider disabling a few chatty warnings.
-  # target_compile_options(${PROJECT_NAME} PRIVATE /Wall
-  #   /wd4514 /wd4710 /wd4711 /wd4820 /wd5045)
 
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall -Wextra -Wpedantic
-    -Wunused-function
-    -Wunused-member-function) # catches unused class methods (Clang)
-
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall -Wextra -Wpedantic
-    -Wunused-function) # GCC does not warn on unused member funcs
-endif()
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE IS_HOST_PLUGIN)
+# ---------------------------------------------------- #
+#                        Output                        #
+# ---------------------------------------------------- #
 
 set(wildlander_output false)
 set(steam_owrt_output false)
 set(steam_mods_output true)
-set(lorerim_mods_output false)
-set(lorerim3_mods_output true)
-automaticGameFolderOutput(wildlander_output, steam_owrt_output, steam_mods_output lorerim_mods_output lorerim3_mods_output)
+automaticGameFolderOutput(wildlander_output, steam_owrt_output, steam_mods_output)
