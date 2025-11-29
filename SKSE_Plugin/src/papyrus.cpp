@@ -19,7 +19,7 @@ void UnTrack(RE::StaticFunctionTag*, RE::TESForm* form) {
 
 void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting* effect, float magnitude,
     uint32_t area, uint32_t duration, float cost) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
     try {
         logger::trace("added");
 
@@ -45,7 +45,7 @@ void AddMagicEffect(RE::StaticFunctionTag*, RE::TESForm* item, RE::EffectSetting
 }
 
 void CopyMagicEffects(RE::StaticFunctionTag*, RE::TESForm* from, RE::TESForm* to) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
     try {
         logger::trace("added");
 
@@ -78,7 +78,7 @@ void Dispose(RE::StaticFunctionTag*, RE::TESForm* form) {
 }
 
 void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
     try {
 
         if (!item) {
@@ -99,7 +99,7 @@ void ClearMagicEffects(RE::StaticFunctionTag*, RE::TESForm* item) {
 }
 
 void CopyAppearance(RE::StaticFunctionTag*, RE::TESForm* source, RE::TESForm* target) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
     try {
 
         if (!source || !target) {
@@ -131,7 +131,7 @@ void CopyAppearance(RE::StaticFunctionTag*, RE::TESForm* source, RE::TESForm* ta
 }
 
 void SetSpellTomeSpell(RE::StaticFunctionTag*, RE::TESObjectBOOK* spellTome, RE::SpellItem* spell) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
     try {
         if (!spellTome || !spell) {
             return;
@@ -145,7 +145,7 @@ void SetSpellTomeSpell(RE::StaticFunctionTag*, RE::TESObjectBOOK* spellTome, RE:
 }
 
 void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, bool autoCalculate) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -161,7 +161,7 @@ void SetSpellAutoCalculate(RE::StaticFunctionTag*, RE::SpellItem* spell, bool au
 
 void SetSpellCostOverride(RE::StaticFunctionTag*, RE::SpellItem* spell, uint32_t costOverride) {
 
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -171,7 +171,7 @@ void SetSpellCostOverride(RE::StaticFunctionTag*, RE::SpellItem* spell, uint32_t
 }
 
 void SetSpellChargeTime(RE::StaticFunctionTag*, RE::SpellItem* spell, float chargeTime) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -181,7 +181,7 @@ void SetSpellChargeTime(RE::StaticFunctionTag*, RE::SpellItem* spell, float char
 }
 
 void SetSpellCastDuration(RE::StaticFunctionTag*, RE::SpellItem* spell, float castDuration) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -191,7 +191,7 @@ void SetSpellCastDuration(RE::StaticFunctionTag*, RE::SpellItem* spell, float ca
 }
 
 void SetSpellRange(RE::StaticFunctionTag*, RE::SpellItem* spell, float range) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -201,7 +201,7 @@ void SetSpellRange(RE::StaticFunctionTag*, RE::SpellItem* spell, float range) {
 }
 
 void SetSpellCastingPerk(RE::StaticFunctionTag*, RE::SpellItem* spell, RE::BGSPerk* perk) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell || !perk) {
         return;
@@ -211,7 +211,7 @@ void SetSpellCastingPerk(RE::StaticFunctionTag*, RE::SpellItem* spell, RE::BGSPe
 }
 
 void SetEnchantmentAutoCalculate(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, bool autoCalculate) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -226,7 +226,7 @@ void SetEnchantmentAutoCalculate(RE::StaticFunctionTag*, RE::EnchantmentItem* sp
 }
 
 void SetEnchantmentChargeOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, uint32_t costOverride) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -236,7 +236,7 @@ void SetEnchantmentChargeOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* s
 }
 
 void SetEnchantmentCostOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, uint32_t costOverride) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -247,7 +247,7 @@ void SetEnchantmentCostOverride(RE::StaticFunctionTag*, RE::EnchantmentItem* spe
 }
 
 void SetEnchantmentChargeTime(RE::StaticFunctionTag*, RE::EnchantmentItem* spell, float chargeTime) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!spell) {
         return;
@@ -256,7 +256,7 @@ void SetEnchantmentChargeTime(RE::StaticFunctionTag*, RE::EnchantmentItem* spell
 }
 
 void SetAmmoDamage(RE::StaticFunctionTag*, RE::TESAmmo* ammo, float damage) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!ammo) {
         return;
@@ -265,7 +265,7 @@ void SetAmmoDamage(RE::StaticFunctionTag*, RE::TESAmmo* ammo, float damage) {
 }
 
 void SetAmmoProjectile(RE::StaticFunctionTag*, RE::TESAmmo* ammo, RE::BGSProjectile* projectile) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!ammo || !projectile) {
         return;
@@ -274,7 +274,7 @@ void SetAmmoProjectile(RE::StaticFunctionTag*, RE::TESAmmo* ammo, RE::BGSProject
 }
 
 void SetSoulGemCapacity(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint32_t capacity) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     const auto value = static_cast<RE::SOUL_LEVEL>(capacity);
 
@@ -286,7 +286,7 @@ void SetSoulGemCapacity(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint32_
 }
 
 void SetSoulGemCurrentSoul(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint32_t capacity) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     const auto value = static_cast<RE::SOUL_LEVEL>(capacity);
 
@@ -299,7 +299,7 @@ void SetSoulGemCurrentSoul(RE::StaticFunctionTag*, RE::TESSoulGem* soulGem, uint
 }
 
 void LinkSoulGems(RE::StaticFunctionTag*, RE::TESSoulGem* empty, RE::TESSoulGem* filled) {
-    std::lock_guard<std::mutex> lock(papyrusMutex);
+    std::lock_guard lock(papyrusMutex);
 
     if (!empty || !filled) {
         return;

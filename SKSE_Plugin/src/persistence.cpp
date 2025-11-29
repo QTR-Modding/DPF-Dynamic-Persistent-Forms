@@ -5,7 +5,7 @@
 std::mutex callbackMutext;
 
 void SaveCallback(SKSE::SerializationInterface* a_intfc) {
-    std::lock_guard<std::mutex> lock(callbackMutext);
+    std::lock_guard lock(callbackMutext);
     try {
         logger::info("SAVE CAllBACK");
         if (!a_intfc->OpenRecord('ARR_', 1)) {
@@ -21,7 +21,7 @@ void SaveCallback(SKSE::SerializationInterface* a_intfc) {
 }
 
 void LoadCallback(SKSE::SerializationInterface* a_intfc) {
-    std::lock_guard<std::mutex> lock(callbackMutext);
+    std::lock_guard lock(callbackMutext);
     try {
         logger::info("LOAD CAllBACK");
 

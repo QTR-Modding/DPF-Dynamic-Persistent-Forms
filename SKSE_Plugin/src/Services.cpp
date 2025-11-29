@@ -3,7 +3,7 @@
 #include "model.h"
 
 RE::TESForm* Services::Create(RE::TESForm* baseItem) {
-    std::lock_guard<std::mutex> lock(serviceMutex);
+    std::lock_guard lock(serviceMutex);
     try {
         if (!baseItem) return nullptr;
             
@@ -18,7 +18,7 @@ RE::TESForm* Services::Create(RE::TESForm* baseItem) {
 }
 
 void Services::Track(RE::TESForm* baseItem) {
-    std::lock_guard<std::mutex> lock(serviceMutex);
+    std::lock_guard lock(serviceMutex);
     try {
         if (!baseItem) return;
         bool found = false;
@@ -41,7 +41,7 @@ void Services::Track(RE::TESForm* baseItem) {
 }
 
 void Services::UnTrack(RE::TESForm* form) {
-    std::lock_guard<std::mutex> lock(serviceMutex);
+    std::lock_guard lock(serviceMutex);
     try {
         if (!form) return;
         EachFormRef([&](FormRecord* item) {
@@ -55,7 +55,7 @@ void Services::UnTrack(RE::TESForm* form) {
 }
 
 void Services::Dispose(RE::TESForm* form) {
-    std::lock_guard<std::mutex> lock(serviceMutex);
+    std::lock_guard lock(serviceMutex);
     try {
         if (!form) {
             return;

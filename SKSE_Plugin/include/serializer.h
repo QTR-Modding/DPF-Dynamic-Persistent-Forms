@@ -64,9 +64,8 @@ public:
     T Read() {
         if (!ctx.empty()) {
             return ctx.top()->Read<T>();
-        } else {
-            return ReadSource<T>();
         }
+        return ReadSource<T>();
     }
 
     void StartWritingSection() {
@@ -78,16 +77,16 @@ public:
             auto body = ctx.top();
             ctx.pop();
             body->WriteDown(
-                [&](uint32_t size) { WriteTarget<uint32_t>(size); }, 
-                [&](char item) { WriteTarget<char>(item); }
+                [&](const uint32_t size) { WriteTarget<uint32_t>(size); }, 
+                [&](const char item) { WriteTarget<char>(item); }
             );
             delete body;
         } else if (ctx.size() > 1) {
             auto body = ctx.top();
             ctx.pop();
             body->WriteDown(
-                [&](uint32_t size) { ctx.top()->Write<uint32_t>(size); }, 
-                [&](char item) { ctx.top()->Write<char>(item); }
+                [&](const uint32_t size) { ctx.top()->Write<uint32_t>(size); }, 
+                [&](const char item) { ctx.top()->Write<char>(item); }
             );
             delete body;
         }
@@ -160,7 +159,7 @@ public:
             const uint32_t dynamicId = Read<uint32_t>();
             return dynamicId + (dynamicModId << 24);
         }
-        else if(fileRef == 2){
+        if(fileRef == 2){
             const std::string fileName = ReadString();
             const uint32_t localId = Read<uint32_t>();
             const auto formId = dataHandler->LookupFormID(localId, fileName);
@@ -285,7 +284,7 @@ public:
 
     ~FileWriter();
 
-    bool IsOpen() { return fileStream.is_open(); }
+    bool IsOpen() const { return fileStream.is_open(); }
 
     template <class T>
     T ReadImplementation() {
@@ -310,7 +309,7 @@ public:
 
     ~FileReader();
 
-    bool IsOpen() { return fileStream.is_open(); }
+    bool IsOpen() const { return fileStream.is_open(); }
 
     template <class T>
     void WriteImplementation(T) {}
@@ -320,9 +319,8 @@ public:
         if (fileStream.is_open()) {
             fileStream.read(reinterpret_cast<char*>(&value), sizeof(T));
             return value;
-        } else {
-            logger::error("Error: File not open for reading.");
         }
+        logger::error("Error: File not open for reading.");
         return T();
     }
 };

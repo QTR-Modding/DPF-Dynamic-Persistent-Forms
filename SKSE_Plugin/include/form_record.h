@@ -2,7 +2,7 @@
 
 class FormRecord {
      FormRecord() {}
-     FormRecord(RE::TESForm *_actualForm);
+     explicit FormRecord(RE::TESForm *_actualForm);
 
 public:
 
@@ -17,8 +17,8 @@ public:
 
     bool Match(RE::TESForm *matchForm);
 
-    bool Match(RE::FormID matchForm) { return matchForm == formId; }
-    bool HasModel() { return modelForm != nullptr; }
+    bool Match(const RE::FormID matchForm) const { return matchForm == formId; }
+    bool HasModel() const { return modelForm != nullptr; }
 
     RE::TESForm *baseForm = nullptr;
     RE::TESForm *actualForm = nullptr;

@@ -3,7 +3,7 @@
 
 namespace DPF {
     // Defina um ID único para sua interface
-    constexpr const char* InterfaceName = "DynamicPersistentForms";
+    constexpr auto InterfaceName = "DynamicPersistentForms";
     constexpr uint32_t InterfaceVersion = 1;
 
     // Classe abstrata pura

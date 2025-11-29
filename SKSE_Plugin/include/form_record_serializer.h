@@ -84,7 +84,7 @@ bool RestoreAllFormRecords(Serializer<T>* serializer) {
 
 
 template <typename T>
-static void StoreFormRecord(Serializer<T>* serializer, FormRecord* instance, bool reference) {
+static void StoreFormRecord(Serializer<T>* serializer, FormRecord* instance, const bool reference) {
 
     serializer->StartWritingSection();
 
@@ -122,7 +122,7 @@ static void StoreFormRecordData(Serializer<T>* serializer, FormRecord* instance)
 
 
 template <typename T>
-static bool RestoreFormRecord(Serializer<T>* serializer, uint32_t i, bool reference) {
+static bool RestoreFormRecord(Serializer<T>* serializer, const uint32_t i, const bool reference) {
     FormRecord* instance = nullptr;
     bool createdRecord = false;
     serializer->startReadingSection();
