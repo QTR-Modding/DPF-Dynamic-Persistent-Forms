@@ -1,5 +1,5 @@
 #pragma once
-
+#include "model.h"
 #include <cstdint>
 #include <stack>
 #include <sstream>
@@ -8,60 +8,40 @@
 #include <cstring>
 
 class StreamWrapper {
-    private:
     std::stringstream stream;
-    public:
-        void Clear() {
-            stream.str("");
-            stream.clear();
-            stream.seekg(0);
+
+public:
+    void Clear();
+    void SeekBeginning();
+
+    template <class T>
+    void Write(T value) { stream.write(reinterpret_cast<const char*>(&value), sizeof(T)); }
+
+    template <class T>
+    T Read() {
+        T result;
+        if (stream.read(reinterpret_cast<char*>(&result), sizeof(T))) {
+            return result;
         }
-        void SeekBeginning() { stream.seekg(0); }
-        template <class T>
-        void Write(T value) { stream.write(reinterpret_cast<const char*>(&value), sizeof(T)); }
-        template <class T>
-        T Read() {
-            T result;
-            if (stream.read(reinterpret_cast<char*>(&result), sizeof(T))) {
-                return result;
-            }
-            return T();
-        }
-        uint32_t Size() {
-            const std::streampos currentPosition = stream.tellg();
-            stream.seekg(0, std::ios::end);
-            const size_t size = stream.tellg();
-            stream.seekg(currentPosition);
-            return static_cast<uint32_t>(size);
-        }
-        void WriteDown(std::function<void(uint32_t)> const& start, std::function<void(char)> const& step) {
-            const auto size = Size();
-            start(size);
-            SeekBeginning();
-            for (size_t i = 0; i < size; i++) {
-                step(static_cast<char>(stream.get()));
-            }
-            Clear();
-        }
-        void ReadOut(std::function<uint32_t()> start, std::function<char()> const& step) {
-            Clear();
-            const uint32_t arrayLength = start();
-            for (size_t i = 0; i < arrayLength; i++) {
-                stream.put(step());
-            }
-            SeekBeginning();
-        }
+        return T();
+    }
+
+    uint32_t Size();
+
+    void WriteDown(const std::function<void(uint32_t)>& start, const std::function<void(char)>& step);
+
+    void ReadOut(std::function<uint32_t()> start, const std::function<char()>& step);
 };
 
 template <typename Derived>
 class Serializer {
-private:
     std::stack<StreamWrapper*> ctx;
 
     template <class T>
     void WriteTarget(T value) {
         static_cast<Derived*>(this)->template WriteImplementation<T>(value);
     }
+
     template <class T>
     T ReadSource() {
         return static_cast<Derived*>(this)->template ReadImplementation<T>();
@@ -69,14 +49,9 @@ private:
 
 protected:
     bool error = false;
-public:
 
-    ~Serializer() {
-        while (!ctx.empty()) {
-            delete ctx.top();
-            ctx.pop();      
-        }
-    }
+public:
+    ~Serializer();
 
     template <class T>
     void Write(T value) {
@@ -86,13 +61,13 @@ public:
             WriteTarget<T>(value);
         }
     }
+
     template <class T>
     T Read() {
         if (!ctx.empty()) {
             return ctx.top()->Read<T>();
-        } else {
-            return ReadSource<T>();
         }
+        return ReadSource<T>();
     }
 
     void StartWritingSection() {
@@ -104,36 +79,35 @@ public:
             auto body = ctx.top();
             ctx.pop();
             body->WriteDown(
-                [&](uint32_t size) { WriteTarget<uint32_t>(size); }, 
-                [&](char item) { WriteTarget<char>(item); }
-            );
+                [&](const uint32_t size) { WriteTarget<uint32_t>(size); },
+                [&](const char item) { WriteTarget<char>(item); }
+                );
             delete body;
         } else if (ctx.size() > 1) {
             auto body = ctx.top();
             ctx.pop();
             body->WriteDown(
-                [&](uint32_t size) { ctx.top()->Write<uint32_t>(size); }, 
-                [&](char item) { ctx.top()->Write<char>(item); }
-            );
+                [&](const uint32_t size) { ctx.top()->Write<uint32_t>(size); },
+                [&](const char item) { ctx.top()->Write<char>(item); }
+                );
             delete body;
         }
     }
 
     void startReadingSection() {
-
         if (ctx.size() == 0) {
             ctx.push(new StreamWrapper());
             ctx.top()->ReadOut(
-                [&]() { return ReadSource<uint32_t>(); }, 
+                [&]() { return ReadSource<uint32_t>(); },
                 [&]() { return ReadSource<char>(); }
-            );
+                );
         } else {
             const auto parent = ctx.top();
             ctx.push(new StreamWrapper());
             ctx.top()->ReadOut(
-                [&]() { return parent->Read<uint32_t>(); }, 
+                [&]() { return parent->Read<uint32_t>(); },
                 [&]() { return parent->Read<char>(); }
-            );
+                );
         }
     }
 
@@ -144,7 +118,8 @@ public:
             delete top;
         }
     }
-    template<class T>
+
+    template <class T>
     T* ReadFormRef() {
         const auto item = ReadFormId();
         if (item == 0) {
@@ -176,7 +151,7 @@ public:
     RE::FormID ReadFormId() {
         const auto dataHandler = RE::TESDataHandler::GetSingleton();
         const char fileRef = Read<char>();
-        print("fileref", fileRef);
+        logger::trace("fileref {}", fileRef);
 
         if (fileRef == 0) {
             return 0;
@@ -186,26 +161,24 @@ public:
             const uint32_t dynamicId = Read<uint32_t>();
             return dynamicId + (dynamicModId << 24);
         }
-        else if(fileRef == 2){
+        if (fileRef == 2) {
             const std::string fileName = ReadString();
             const uint32_t localId = Read<uint32_t>();
             const auto formId = dataHandler->LookupFormID(localId, fileName);
-            print("localid", formId);
-            print("modname", fileName);
-            print("id", formId);
+            logger::trace("localid {:x}", formId);
+            logger::trace("modname {}", fileName);
+            logger::trace("id {:x}", formId);
             return formId;
         }
 
         return 0;
-
-
     }
 
     void WriteFormId(RE::FormID formId) {
-        printInt("formid", formId);
+        logger::trace("formid {:x}", formId);
         if (formId == 0) {
-            print("zero");
-            Write<char>(0); 
+            logger::trace("zero");
+            Write<char>(0);
             return;
         }
 
@@ -213,15 +186,14 @@ public:
 
         const auto modId = (formId >> 24) & 0xff;
 
-        print("mid", modId);
+        logger::trace("mid", modId);
         if (modId == dynamicModId) {
-            print("dynamic");
+            logger::trace("dynamic");
             const auto localId = formId & 0xFFFFFF;
             Write<char>(1);
             Write<uint32_t>(localId);
-        }
-        else if (modId == 0xfe) {
-            print("light");
+        } else if (modId == 0xfe) {
+            logger::trace("light");
             const auto lightId = (formId >> 12) & 0xFFF;
             const auto file = dataHandler->LookupLoadedLightModByIndex(lightId);
             if (file) {
@@ -232,11 +204,10 @@ public:
                 Write<uint32_t>(localId);
             } else {
                 Write<char>(0);
-                print("missing file");
+                logger::error("missing file");
             }
-        } 
-        else {
-            print("regular");
+        } else {
+            logger::trace("regular");
             const auto file = dataHandler->LookupLoadedModByIndex(modId);
             if (file) {
                 const auto localId = formId & 0xFFFFFF;
@@ -246,16 +217,14 @@ public:
                 Write<uint32_t>(localId);
             } else {
                 Write<char>(0);
-                print("missing file");
+                logger::error("missing file");
             }
         }
-
-
     }
 
     char* ReadString() {
         const size_t arrayLength = Read<uint32_t>();
-        char* result = new char[arrayLength+1];
+        char* result = new char[arrayLength + 1];
         for (size_t i = 0; i < arrayLength; i++) {
             result[i] = Read<char>();
         }
@@ -273,22 +242,31 @@ public:
     }
 };
 
+template <typename Derived>
+Serializer<Derived>::~Serializer() {
+    while (!ctx.empty()) {
+        delete ctx.top();
+        ctx.pop();
+    }
+}
+
 class SaveDataSerializer : public Serializer<SaveDataSerializer> {
-private:
     SKSE::SerializationInterface* a_intfc;
+
 public:
-    SaveDataSerializer(SKSE::SerializationInterface* _a_intfc) { a_intfc = _a_intfc; }
+    SaveDataSerializer(SKSE::SerializationInterface* _a_intfc);
 
     template <class T>
     void WriteImplementation(T item) {
         a_intfc->WriteRecordData(item);
     }
+
     template <class T>
     T ReadImplementation() {
         T item;
         auto success = a_intfc->ReadRecordData(item);
         if (!success) {
-            print("error reanding");
+            logger::error("error reading");
             error = true;
         }
         return item;
@@ -296,23 +274,14 @@ public:
 };
 
 class FileWriter : public Serializer<FileWriter> {
-private:
     std::ofstream fileStream;
 
 public:
-    FileWriter(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::out) {
-        fileStream.open(filename, _Mode);
-        if (!fileStream.is_open()) {
-            print("Error: Unable to open file ");
-        }
-    }
-    ~FileWriter() {
-        if (fileStream.is_open()) {
-            fileStream.close();
-        }
-    }
+    FileWriter(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::out);
 
-    bool IsOpen() { return fileStream.is_open(); }
+    ~FileWriter();
+
+    bool IsOpen() const { return fileStream.is_open(); }
 
     template <class T>
     T ReadImplementation() {
@@ -324,41 +293,33 @@ public:
         if (fileStream.is_open()) {
             fileStream.write(reinterpret_cast<const char*>(&value), sizeof(T));
         } else {
-            print("Error: File not open for writing.");
+            logger::error("Error: File not open for writing.");
         }
     }
 };
 
 class FileReader : public Serializer<FileReader> {
-private:
     std::ifstream fileStream;
 
 public:
-    FileReader(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::in) {
-        fileStream.open(filename, _Mode);
-        if (!fileStream.is_open()) {
-            print("Error: Unable to open file");
-        }
-    }
-    ~FileReader() {
-        if (fileStream.is_open()) {
-            fileStream.close();
-        }
-    }
+    FileReader(const std::string& filename, std::ios_base::openmode _Mode = std::ios_base::in);
 
-    bool IsOpen() { return fileStream.is_open(); }
+    ~FileReader();
+
+    bool IsOpen() const { return fileStream.is_open(); }
 
     template <class T>
-    void WriteImplementation(T) {}
+    void WriteImplementation(T) {
+    }
+
     template <class T>
     T ReadImplementation() {
         T value;
         if (fileStream.is_open()) {
             fileStream.read(reinterpret_cast<char*>(&value), sizeof(T));
             return value;
-        } else {
-            print("Error: File not open for reading.");
         }
+        logger::error("Error: File not open for reading.");
         return T();
     }
 };

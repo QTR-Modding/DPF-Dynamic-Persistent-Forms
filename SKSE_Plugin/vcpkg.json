@@ -9,7 +9,8 @@
     "spdlog",
     "xbyak",
     "rapidcsv",
-    "directxtk"
+    "directxtk",
+    "rapidjson"
   ],
   "overrides": [
     {
