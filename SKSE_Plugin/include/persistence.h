@@ -7,9 +7,7 @@
 namespace fs = std::filesystem;
 
 std::string GetCacheFilePath();
-
 void LoadCache();
-
 void SaveCache();
 
 void SaveCallback(SKSE::SerializationInterface* a_intfc);

@@ -23,7 +23,7 @@ add_include_folder(vendor/include)
 
 cmake_minimum_required(VERSION 3.21)
 set(AUTHOR_NAME "SkyrimThiago & Quantumyilmaz & Viny")
-set(PRODUCT_NAME "DynamicPersistentFroms")
+set(PRODUCT_NAME "DynamicPersistentForms")
 set(BEAUTIFUL_NAME "Dynamic Persistent Froms")
 
 project(${PRODUCT_NAME} VERSION 2.0.0.0 LANGUAGES CXX)

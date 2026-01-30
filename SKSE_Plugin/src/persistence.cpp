@@ -89,6 +89,12 @@ void LoadCache() {
 
     std::string path = GetCacheFilePath();
 
+    if (!fs::exists(path)) {
+        logger::info("Cache file not found. Creating initial file at: {}", path);
+        SaveCache(); 
+        return;
+    }
+
     const auto fileReader = new FileReader(path, std::ios::in | std::ios::binary);
     if (!fileReader->IsOpen()) {
         logger::error("File not found");
@@ -110,7 +116,6 @@ void SaveCache() {
     fs::path p(fullPath);
 
     try {
-        // Garante que o diretório pai existe
         if (p.has_parent_path() && !fs::exists(p.parent_path())) {
             fs::create_directories(p.parent_path());
         }
