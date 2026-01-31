@@ -2,6 +2,7 @@
 #include <mutex>
 
 namespace DPF {
+    // Defina um ID único para sua interface
     constexpr auto InterfaceName = "DynamicPersistentForms";
     constexpr uint32_t InterfaceVersion = 1;
 
