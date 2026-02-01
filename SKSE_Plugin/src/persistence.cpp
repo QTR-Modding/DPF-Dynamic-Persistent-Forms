@@ -10,12 +10,14 @@ void SaveCallback(SKSE::SerializationInterface* a_intfc) {
         logger::info("SAVE CAllBACK");
         if (!a_intfc->OpenRecord('ARR_', 1)) {
             logger::error("Failed to open record for arr!");
-        } else {
+        }
+        else {
             const auto serializer = new SaveDataSerializer(a_intfc);
             StoreAllFormRecords(serializer);
         }
         SaveCache();
-    } catch (const std::exception&) {
+    }
+    catch (const std::exception&) {
         logger::error("error saving");
     }
 }
@@ -32,15 +34,15 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
 
         while (a_intfc->GetNextRecordInfo(type, version, length)) {
             switch (type) {
-                case 'ARR_': {
-                    const auto serializer = new SaveDataSerializer(a_intfc);
-                    refreshGame = RestoreAllFormRecords(serializer);
-                    delete serializer;
-                }
+            case 'ARR_': {
+                const auto serializer = new SaveDataSerializer(a_intfc);
+                refreshGame = RestoreAllFormRecords(serializer);
+                delete serializer;
+            }
+                       break;
+            default:
+                logger::error("Unrecognized signature type!");
                 break;
-                default:
-                    logger::error("Unrecognized signature type!");
-                    break;
             }
         }
         if (refreshGame) {
@@ -50,15 +52,50 @@ void LoadCallback(SKSE::SerializationInterface* a_intfc) {
         }
 
         logger::info("CAllBACK LOADED");
-    } catch (const std::exception&) {
+    }
+    catch (const std::exception&) {
         logger::error("error loading");
     }
 }
 
+std::string GetCacheFilePath()
+{
+    const std::string settingsFile = "Data/SKSE/Plugins/DPF_Settings.json";
+    const std::string defaultPath = "Data/SKSE/Plugins/[NoDelete] DPF/DynamicPersistentFormsCache.bin";
+
+    if (!fs::exists(settingsFile)) {
+        return defaultPath;
+    }
+
+    FILE* fp = fopen(settingsFile.c_str(), "rb");
+    if (!fp) return defaultPath;
+
+    char readBuffer[65536];
+    rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+    rapidjson::Document d;
+    d.ParseStream(is);
+    fclose(fp);
+
+    if (!d.HasParseError() && d.HasMember("SavePath") && d["SavePath"].IsString()) {
+        std::string customDir = d["SavePath"].GetString();
+        return customDir + "/DynamicPersistentFormsCache.bin";
+    }
+
+    return defaultPath;
+}
+
 void LoadCache() {
     logger::info("LOAD CACHE");
-    const auto fileReader = new FileReader("DynamicPersistentFormsCache.bin", std::ios::in | std::ios::binary);
 
+    std::string path = GetCacheFilePath();
+
+    if (!fs::exists(path)) {
+        logger::info("Cache file not found. Creating initial file at: {}", path);
+        SaveCache(); 
+        return;
+    }
+
+    const auto fileReader = new FileReader(path, std::ios::in | std::ios::binary);
     if (!fileReader->IsOpen()) {
         logger::error("File not found");
         return;
@@ -75,17 +112,29 @@ void LoadCache() {
 void SaveCache() {
     logger::info("save cache");
 
-    const auto fileWriter = new FileWriter("DynamicPersistentFormsCache.bin",
-                                           std::ios::out | std::ios::binary | std::ios::trunc);
+    std::string fullPath = GetCacheFilePath();
+    fs::path p(fullPath);
 
-    if (!fileWriter->IsOpen()) {
-        logger::error("File not found");
-        return;
+    try {
+        if (p.has_parent_path() && !fs::exists(p.parent_path())) {
+            fs::create_directories(p.parent_path());
+        }
+
+        const auto fileWriter = new FileWriter(fullPath,
+            std::ios::out | std::ios::binary | std::ios::trunc);
+
+        if (!fileWriter->IsOpen()) {
+            logger::error("Failed to open file for writing: {}", fullPath);
+            delete fileWriter;
+            return;
+        }
+
+        StoreAllFormRecords(fileWriter);
+        delete fileWriter;
+
+        logger::info("Property data has been written successfully to: {}", fullPath);
     }
-
-    StoreAllFormRecords(fileWriter);
-
-    delete fileWriter;
-
-    logger::info("Property data has been written to file successfully.");
+    catch (const std::exception& e) {
+        logger::error("Error during save: {}", e.what());
+    }
 }
