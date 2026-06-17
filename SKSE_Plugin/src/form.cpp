@@ -1,5 +1,6 @@
-#include "form.h"
+﻿#include "form.h"
 #include "model.h"
+#include "persistence.h"
 
 void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target) {
     const auto* sourceModelBipedForm = source->As<RE::TESObjectARMO>();
@@ -158,73 +159,131 @@ namespace {
         return result;
     }
 
-    RE::TESForm* ReuseDeletedSlot(const RE::FormType formType, RE::TESForm* baseItem) {
-        RE::TESForm* result = nullptr;
+    FormRecord* FindCreatedRecord(const RE::FormID formId) {
+        FormRecord* found = nullptr;
         EachFormData([&](FormRecord* item) {
-            if (!item->deleted || item->formType != formType || !IsDynamicFormID(item->formId)) {
-                return true;
-            }
-
-            logger::info("Reusing deleted DPF slot {:08X}", item->formId);
-            result = CreateFormInstance(formType, item->formId);
-            if (!result) {
+            if (item && item->formId == formId) {
+                found = item;
                 return false;
             }
-
-            item->Undelete(result, formType);
-            item->baseForm = baseItem;
-            item->modelForm = nullptr;
-            if (baseItem) {
-                applyPattern(item);
-            }
-            return false;
+            return true;
         });
-        return result;
+        return found;
+    }
+
+    RE::TESForm* CreateRegisteredForm(const uint32_t localId, const RE::FormType formType, RE::TESForm* baseItem,
+        std::string owner = {}, std::string key = {}) {
+        if (!espFound || localId == 0 || formType == RE::FormType::None) {
+            return nullptr;
+        }
+
+        const auto existingSlot = GetRegisteredDynamicSlot(localId);
+        if (existingSlot.has_value()) {
+            if (existingSlot->formType != formType) {
+                logger::error("Slot {:06X} is registered as type {}, requested {}", localId,
+                    static_cast<uint32_t>(existingSlot->formType), static_cast<uint32_t>(formType));
+                return nullptr;
+            }
+            if ((!owner.empty() || !key.empty()) && (existingSlot->owner != owner || existingSlot->key != key)) {
+                logger::error("Slot {:06X} is owned by '{}'/'{}', requested '{}'/'{}'", localId,
+                    existingSlot->owner, existingSlot->key, owner, key);
+                return nullptr;
+            }
+        }
+
+        const auto formId = MakeDynamicFormID(localId);
+        if (auto* existingForm = RE::TESForm::LookupByID(formId)) {
+            if (existingForm->GetFormType() != formType) {
+                logger::error("FormID {:08X} exists as type {}, requested {}", formId,
+                    static_cast<uint32_t>(existingForm->GetFormType()), static_cast<uint32_t>(formType));
+                return nullptr;
+            }
+            if (!RegisterDynamicSlot(localId, formType, std::move(owner), std::move(key))) {
+                return nullptr;
+            }
+            if (!FindCreatedRecord(formId)) {
+                auto* record = FormRecord::CreateNew(existingForm, formType, formId);
+                record->baseForm = baseItem;
+                AddFormData(record);
+            }
+            SaveGlobalRegistry();
+            return existingForm;
+        }
+
+        if (!RegisterDynamicSlot(localId, formType, std::move(owner), std::move(key))) {
+            return nullptr;
+        }
+
+        auto* newForm = CreateFormInstance(formType, formId);
+        if (!newForm) {
+            return nullptr;
+        }
+
+        auto* record = FormRecord::CreateNew(newForm, formType, formId);
+        record->baseForm = baseItem;
+        if (baseItem) {
+            applyPattern(record);
+        }
+        AddFormData(record);
+        SaveGlobalRegistry();
+        return newForm;
     }
 }
 
 RE::TESForm* AddForm(RE::TESForm* baseItem) {
-    if (!espFound) {
-        return nullptr;
-    }
     if (!baseItem) {
         logger::error("Create(baseItem) was called with a null baseItem. Use CreateByType for empty forms.");
         return nullptr;
     }
 
-    if (auto* reused = ReuseDeletedSlot(baseItem->GetFormType(), baseItem)) {
-        return reused;
-    }
-
-    logger::info("item created");
     const auto formId = AllocateDynamicFormID();
     if (formId == 0) {
         return nullptr;
     }
 
-    const auto newForm = CreateFormInstance(baseItem->GetFormType(), formId);
-    if (!newForm) {
-        return nullptr;
-    }
-
-    const auto slot = FormRecord::CreateNew(newForm, baseItem->GetFormType(), formId);
-    slot->baseForm = baseItem;
-    applyPattern(slot);
-    AddFormData(slot);
-    return newForm;
+    return CreateRegisteredForm(ToDynamicLocalID(formId), baseItem->GetFormType(), baseItem);
 }
 
 RE::TESForm* AddFormByType(const RE::FormType formType) {
-    if (!espFound) {
-        return nullptr;
-    }
     if (formType == RE::FormType::None) {
         logger::error("CreateByType called with FormType::None");
         return nullptr;
     }
 
-    if (auto* reused = ReuseDeletedSlot(formType, nullptr)) {
-        return reused;
+    const auto formId = AllocateDynamicFormID();
+    if (formId == 0) {
+        return nullptr;
+    }
+
+    return CreateRegisteredForm(ToDynamicLocalID(formId), formType, nullptr);
+}
+
+RE::TESForm* AddFormByTypeForOwner(const char* owner, const char* key, const RE::FormType formType) {
+    return GetOrCreateFormByOwnerKey(owner, key, formType);
+}
+
+RE::TESForm* GetOrCreateFormByLocalId(const uint32_t localId, const RE::FormType formType) {
+    return CreateRegisteredForm(localId & 0x00ffffff, formType, nullptr);
+}
+
+RE::TESForm* GetOrCreateFormByFormId(const RE::FormID formId, const RE::FormType formType) {
+    if (!IsDynamicFormID(formId)) {
+        logger::error("FormID {:08X} does not belong to Dynamic Persistent Forms.esp", formId);
+        return nullptr;
+    }
+    return GetOrCreateFormByLocalId(ToDynamicLocalID(formId), formType);
+}
+
+RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw, const RE::FormType formType) {
+    const auto owner = NormalizeOwnerKeyPart(ownerRaw);
+    const auto key = NormalizeOwnerKeyPart(keyRaw);
+    if (owner.empty() || key.empty()) {
+        logger::error("Owner and key are required for owned DPF slots");
+        return nullptr;
+    }
+
+    if (const auto existingLocalId = FindDynamicSlotByOwnerKey(owner, key)) {
+        return CreateRegisteredForm(existingLocalId.value(), formType, nullptr, owner, key);
     }
 
     const auto formId = AllocateDynamicFormID();
@@ -232,12 +291,29 @@ RE::TESForm* AddFormByType(const RE::FormType formType) {
         return nullptr;
     }
 
-    auto* newForm = CreateFormInstance(formType, formId);
-    if (!newForm) {
-        return nullptr;
-    }
+    return CreateRegisteredForm(ToDynamicLocalID(formId), formType, nullptr, owner, key);
+}
 
-    auto* slot = FormRecord::CreateNew(newForm, formType, formId);
-    AddFormData(slot);
-    return newForm;
+bool ReleaseFormByOwnerKey(const char* ownerRaw, const char* keyRaw) {
+    const auto released = ReleaseDynamicSlotByOwnerKey(NormalizeOwnerKeyPart(ownerRaw), NormalizeOwnerKeyPart(keyRaw));
+    if (released) {
+        SaveGlobalRegistry();
+    }
+    return released;
+}
+
+bool ReleaseFormByLocalId(const uint32_t localId, const char* ownerRaw) {
+    const auto released = ReleaseDynamicSlot(localId, NormalizeOwnerKeyPart(ownerRaw));
+    if (released) {
+        SaveGlobalRegistry();
+    }
+    return released;
+}
+
+uint32_t ReleaseFormsByOwner(const char* ownerRaw) {
+    const auto released = ReleaseDynamicSlotsByOwner(NormalizeOwnerKeyPart(ownerRaw));
+    if (released > 0) {
+        SaveGlobalRegistry();
+    }
+    return released;
 }

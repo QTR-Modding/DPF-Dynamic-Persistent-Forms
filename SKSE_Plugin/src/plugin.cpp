@@ -1,4 +1,4 @@
-#include "Services.h"
+﻿#include "Services.h"
 #include "logger.h"
 #include "model.h"
 #include "papyrus.h"
@@ -34,6 +34,34 @@ public:
     RE::TESForm* CreateByType(const uint32_t formType) override {
         return Services::CreateByType(formType);
     }
+
+    RE::TESForm* GetOrCreateByLocalId(const uint32_t localId, const uint32_t formType) override {
+        return Services::GetOrCreateByLocalId(localId, formType);
+    }
+
+    RE::TESForm* GetOrCreateByFormId(const RE::FormID formId, const uint32_t formType) override {
+        return Services::GetOrCreateByFormId(formId, formType);
+    }
+
+    RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, const uint32_t formType) override {
+        return Services::CreateByTypeForOwner(owner, key, formType);
+    }
+
+    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType) override {
+        return Services::GetOrCreateByOwnerKey(owner, key, formType);
+    }
+
+    bool ReleaseByOwnerKey(const char* owner, const char* key) override {
+        return Services::ReleaseByOwnerKey(owner, key);
+    }
+
+    bool ReleaseByLocalId(const uint32_t localId, const char* owner) override {
+        return Services::ReleaseByLocalId(localId, owner);
+    }
+
+    uint32_t ReleaseOwner(const char* owner) override {
+        return Services::ReleaseOwner(owner);
+    }
 };
 
 extern "C" __declspec(dllexport) void* GetDPFAPI() {
@@ -44,7 +72,8 @@ namespace {
     void OnMessage(SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ReadFirstFormIdFromESP();
-            logger::info("DPF data loaded");
+            LoadGlobalRegistry();
+            logger::info("DynamicPersistentForms data loaded");
         } else if (message->type == SKSE::MessagingInterface::kNewGame) {
             ClearRecords(true);
             logger::info("DPF new game state cleared");
@@ -67,3 +96,5 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     return true;
 }
+
+

@@ -30,6 +30,69 @@ RE::TESForm* Services::CreateByType(const uint32_t formType) {
     }
 }
 
+RE::TESForm* Services::GetOrCreateByLocalId(const uint32_t localId, const uint32_t formType) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return GetOrCreateFormByLocalId(localId, static_cast<RE::FormType>(formType));
+    } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+
+RE::TESForm* Services::GetOrCreateByFormId(const RE::FormID formId, const uint32_t formType) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return GetOrCreateFormByFormId(formId, static_cast<RE::FormType>(formType));
+    } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+
+RE::TESForm* Services::CreateByTypeForOwner(const char* owner, const char* key, const uint32_t formType) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return AddFormByTypeForOwner(owner, key, static_cast<RE::FormType>(formType));
+    } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+
+RE::TESForm* Services::GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return GetOrCreateFormByOwnerKey(owner, key, static_cast<RE::FormType>(formType));
+    } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+
+bool Services::ReleaseByOwnerKey(const char* owner, const char* key) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return ReleaseFormByOwnerKey(owner, key);
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool Services::ReleaseByLocalId(const uint32_t localId, const char* owner) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return ReleaseFormByLocalId(localId, owner);
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+uint32_t Services::ReleaseOwner(const char* owner) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return ReleaseFormsByOwner(owner);
+    } catch (const std::exception&) {
+        return 0;
+    }
+}
+
 void Services::Track(RE::TESForm* baseItem) {
     std::lock_guard lock(serviceMutex);
     try {
@@ -44,7 +107,6 @@ void Services::Track(RE::TESForm* baseItem) {
                 found = true;
                 return false;
             }
-            // Correção da lógica original que parecia ter um if duplicado
             return true;
         });
         if (!found) {

@@ -4,6 +4,20 @@
 Form function Create(Form item) global native
 ; Creates a new empty form of the requested FormType and lets DynamicPersistentForms own its persistent FormID slot.
 Form function CreateByType(int formType) global native
+; Returns or creates a persistent form using a known localId from Dynamic Persistent Forms.esp.
+Form function GetOrCreateByLocalId(int localId, int formType) global native
+; Returns or creates a persistent form using a form whose ID belongs to Dynamic Persistent Forms.esp.
+Form function GetOrCreateByFormId(Form formIdSource, int formType) global native
+; Creates or returns a form owned by owner/key.
+Form function CreateByTypeForOwner(String owner, String key, int formType) global native
+; Creates or returns a form owned by owner/key.
+Form function GetOrCreateByOwnerKey(String owner, String key, int formType) global native
+; Releases one owned slot by owner/key.
+bool function ReleaseByOwnerKey(String owner, String key) global native
+; Releases one slot by localId if owner matches.
+bool function ReleaseByLocalId(int localId, String owner) global native
+; Releases all slots owned by owner and returns count.
+int function ReleaseOwner(String owner) global native
 ; Dispose a form that was created using the previous function.
 function Dispose(Form item) global native 
 
@@ -47,4 +61,6 @@ function SetAmmoProjectile(Ammo ammo, Projectile projectile) global native
 function SetSoulGemCapacity(SoulGem gem, int capacity) global native
 function SetSoulGemCurrentSoul(SoulGem gem, int capacity) global native
 function LinkSoulGems(SoulGem empty, SoulGem filled) global native
+
+
 

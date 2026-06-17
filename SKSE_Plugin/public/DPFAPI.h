@@ -6,7 +6,7 @@
 
 namespace DPF {
     constexpr auto InterfaceName = "DynamicPersistentForms";
-    constexpr uint32_t InterfaceVersion = 2;
+    constexpr uint32_t InterfaceVersion = 4;
 
     class IDynamicPersistentForms {
     public:
@@ -22,6 +22,17 @@ namespace DPF {
 
         // v2
         virtual RE::TESForm* CreateByType(uint32_t formType) = 0;
+
+        // v3
+        virtual RE::TESForm* GetOrCreateByLocalId(uint32_t localId, uint32_t formType) = 0;
+        virtual RE::TESForm* GetOrCreateByFormId(RE::FormID formId, uint32_t formType) = 0;
+
+        // v4
+        virtual RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, uint32_t formType) = 0;
+        virtual RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType) = 0;
+        virtual bool ReleaseByOwnerKey(const char* owner, const char* key) = 0;
+        virtual bool ReleaseByLocalId(uint32_t localId, const char* owner) = 0;
+        virtual uint32_t ReleaseOwner(const char* owner) = 0;
     };
 
     using GetDPFAPI = void* (*)();
@@ -45,4 +56,3 @@ namespace DPF {
         return api;
     }
 }
-
