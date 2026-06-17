@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "../public/DPFAPI.h"
 #include <mutex>
@@ -17,6 +17,8 @@ namespace Services {
     RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, uint32_t formType);
 
     RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType);
+
+    RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, uint32_t formType, uint32_t* localId, bool* existed);
 
     bool ReleaseByOwnerKey(const char* owner, const char* key);
 

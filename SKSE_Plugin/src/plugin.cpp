@@ -1,4 +1,4 @@
-﻿#include "Services.h"
+#include "Services.h"
 #include "logger.h"
 #include "model.h"
 #include "papyrus.h"
@@ -61,6 +61,11 @@ public:
 
     uint32_t ReleaseOwner(const char* owner) override {
         return Services::ReleaseOwner(owner);
+    }
+
+    RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, const uint32_t formType,
+        uint32_t* localId, bool* existed) override {
+        return Services::GetOrCreateByOwnerKeyEx(owner, key, formType, localId, existed);
     }
 };
 

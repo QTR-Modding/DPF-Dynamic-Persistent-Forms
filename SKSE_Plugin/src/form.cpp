@@ -1,4 +1,4 @@
-﻿#include "form.h"
+#include "form.h"
 #include "model.h"
 #include "persistence.h"
 
@@ -275,6 +275,18 @@ RE::TESForm* GetOrCreateFormByFormId(const RE::FormID formId, const RE::FormType
 }
 
 RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw, const RE::FormType formType) {
+    return GetOrCreateFormByOwnerKeyEx(ownerRaw, keyRaw, formType, nullptr, nullptr);
+}
+
+RE::TESForm* GetOrCreateFormByOwnerKeyEx(const char* ownerRaw, const char* keyRaw, const RE::FormType formType,
+    uint32_t* localIdOut, bool* existedOut) {
+    if (localIdOut) {
+        *localIdOut = 0;
+    }
+    if (existedOut) {
+        *existedOut = false;
+    }
+
     const auto owner = NormalizeOwnerKeyPart(ownerRaw);
     const auto key = NormalizeOwnerKeyPart(keyRaw);
     if (owner.empty() || key.empty()) {
@@ -283,6 +295,12 @@ RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw,
     }
 
     if (const auto existingLocalId = FindDynamicSlotByOwnerKey(owner, key)) {
+        if (localIdOut) {
+            *localIdOut = existingLocalId.value();
+        }
+        if (existedOut) {
+            *existedOut = true;
+        }
         return CreateRegisteredForm(existingLocalId.value(), formType, nullptr, owner, key);
     }
 
@@ -291,7 +309,16 @@ RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw,
         return nullptr;
     }
 
-    return CreateRegisteredForm(ToDynamicLocalID(formId), formType, nullptr, owner, key);
+    const auto localId = ToDynamicLocalID(formId);
+    auto* form = CreateRegisteredForm(localId, formType, nullptr, owner, key);
+    if (!form) {
+        return nullptr;
+    }
+
+    if (localIdOut) {
+        *localIdOut = localId;
+    }
+    return form;
 }
 
 bool ReleaseFormByOwnerKey(const char* ownerRaw, const char* keyRaw) {

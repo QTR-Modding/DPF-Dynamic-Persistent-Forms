@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "form_record.h"
 
 static void copyFormArmorModel(RE::TESForm* source, RE::TESForm* target);
@@ -29,6 +29,8 @@ RE::TESForm* GetOrCreateFormByLocalId(uint32_t localId, RE::FormType formType);
 RE::TESForm* GetOrCreateFormByFormId(RE::FormID formId, RE::FormType formType);
 
 RE::TESForm* GetOrCreateFormByOwnerKey(const char* owner, const char* key, RE::FormType formType);
+
+RE::TESForm* GetOrCreateFormByOwnerKeyEx(const char* owner, const char* key, RE::FormType formType, uint32_t* localId, bool* existed);
 
 bool ReleaseFormByOwnerKey(const char* owner, const char* key);
 

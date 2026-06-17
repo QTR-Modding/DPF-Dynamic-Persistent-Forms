@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RE/Skyrim.h"
 #include <Windows.h>
@@ -6,7 +6,7 @@
 
 namespace DPF {
     constexpr auto InterfaceName = "DynamicPersistentForms";
-    constexpr uint32_t InterfaceVersion = 4;
+    constexpr uint32_t InterfaceVersion = 5;
 
     class IDynamicPersistentForms {
     public:
@@ -33,6 +33,10 @@ namespace DPF {
         virtual bool ReleaseByOwnerKey(const char* owner, const char* key) = 0;
         virtual bool ReleaseByLocalId(uint32_t localId, const char* owner) = 0;
         virtual uint32_t ReleaseOwner(const char* owner) = 0;
+
+        // v5
+        virtual RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, uint32_t formType,
+            uint32_t* localId, bool* existed) = 0;
     };
 
     using GetDPFAPI = void* (*)();

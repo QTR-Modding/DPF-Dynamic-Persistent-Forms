@@ -1,4 +1,4 @@
-﻿#include "Services.h"
+#include "Services.h"
 #include "form.h"
 #include "model.h"
 
@@ -62,6 +62,21 @@ RE::TESForm* Services::GetOrCreateByOwnerKey(const char* owner, const char* key,
     try {
         return GetOrCreateFormByOwnerKey(owner, key, static_cast<RE::FormType>(formType));
     } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+RE::TESForm* Services::GetOrCreateByOwnerKeyEx(const char* owner, const char* key, const uint32_t formType,
+    uint32_t* localId, bool* existed) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        return GetOrCreateFormByOwnerKeyEx(owner, key, static_cast<RE::FormType>(formType), localId, existed);
+    } catch (const std::exception&) {
+        if (localId) {
+            *localId = 0;
+        }
+        if (existed) {
+            *existed = false;
+        }
         return nullptr;
     }
 }
