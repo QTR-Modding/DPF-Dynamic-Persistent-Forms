@@ -6,6 +6,8 @@
 #include <functional>
 #include <string>
 #include <cstring>
+#include <utility>
+#include <vector>
 
 class StreamWrapper {
     std::stringstream stream;
@@ -194,7 +196,7 @@ public:
             Write<uint32_t>(localId);
         } else if (modId == 0xfe) {
             logger::trace("light");
-            const auto lightId = (formId >> 12) & 0xFFF;
+            const auto lightId = static_cast<uint16_t>((formId >> 12) & 0xFFF);
             const auto file = dataHandler->LookupLoadedLightModByIndex(lightId);
             if (file) {
                 const auto localId = formId & 0xFFF;
@@ -208,7 +210,7 @@ public:
             }
         } else {
             logger::trace("regular");
-            const auto file = dataHandler->LookupLoadedModByIndex(modId);
+            const auto file = dataHandler->LookupLoadedModByIndex(static_cast<uint8_t>(modId));
             if (file) {
                 const auto localId = formId & 0xFFFFFF;
                 const std::string fileName = file->fileName;
@@ -321,5 +323,47 @@ public:
         }
         logger::error("Error: File not open for reading.");
         return T();
+    }
+};
+
+class MemoryWriter : public Serializer<MemoryWriter> {
+    std::vector<uint8_t> bytes;
+
+public:
+    const std::vector<uint8_t>& Data() const { return bytes; }
+
+    template <class T>
+    T ReadImplementation() {
+        return T();
+    }
+
+    template <class T>
+    void WriteImplementation(const T value) {
+        const auto* raw = reinterpret_cast<const uint8_t*>(&value);
+        bytes.insert(bytes.end(), raw, raw + sizeof(T));
+    }
+};
+
+class MemoryReader : public Serializer<MemoryReader> {
+    std::vector<uint8_t> bytes;
+    size_t offset = 0;
+
+public:
+    explicit MemoryReader(std::vector<uint8_t> input) : bytes(std::move(input)) {}
+
+    template <class T>
+    void WriteImplementation(T) {
+    }
+
+    template <class T>
+    T ReadImplementation() {
+        T value{};
+        if (offset + sizeof(T) > bytes.size()) {
+            logger::error("MemoryReader reached end of buffer");
+            return value;
+        }
+        std::memcpy(&value, bytes.data() + offset, sizeof(T));
+        offset += sizeof(T);
+        return value;
     }
 };

@@ -1,4 +1,4 @@
-#include "Services.h"
+ï»¿#include "Services.h"
 #include "form.h"
 #include "model.h"
 
@@ -8,6 +8,19 @@ RE::TESForm* Services::Create(RE::TESForm* baseItem) {
         if (!baseItem) return nullptr;
 
         auto* newForm = AddForm(baseItem);
+        if (newForm) {
+            logger::info("new form id", newForm->GetFormID());
+        }
+        return newForm;
+    } catch (const std::exception&) {
+        return nullptr;
+    }
+}
+
+RE::TESForm* Services::CreateByType(const uint32_t formType) {
+    std::lock_guard lock(serviceMutex);
+    try {
+        auto* newForm = AddFormByType(static_cast<RE::FormType>(formType));
         if (newForm) {
             logger::info("new form id", newForm->GetFormID());
         }
@@ -31,7 +44,7 @@ void Services::Track(RE::TESForm* baseItem) {
                 found = true;
                 return false;
             }
-            // Correção da lógica original que parecia ter um if duplicado
+            // CorreÃ§Ã£o da lÃ³gica original que parecia ter um if duplicado
             return true;
         });
         if (!found) {

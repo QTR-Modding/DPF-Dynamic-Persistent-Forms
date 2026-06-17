@@ -9,6 +9,10 @@ RE::TESForm* Create(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
     return Services::Create(baseItem);
 }
 
+RE::TESForm* CreateByType(RE::StaticFunctionTag*, const uint32_t formType) {
+    return Services::CreateByType(formType);
+}
+
 void Track(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
     Services::Track(baseItem);
 }
@@ -298,6 +302,7 @@ void LinkSoulGems(RE::StaticFunctionTag*, RE::TESSoulGem* empty, RE::TESSoulGem*
 
 bool PapyrusFunctions(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("Create", "DynamicPersistentForms", Create);
+    vm->RegisterFunction("CreateByType", "DynamicPersistentForms", CreateByType);
     vm->RegisterFunction("Dispose", "DynamicPersistentForms", Dispose);
     vm->RegisterFunction("Track", "DynamicPersistentForms", Track);
     vm->RegisterFunction("UnTrack", "DynamicPersistentForms", UnTrack);

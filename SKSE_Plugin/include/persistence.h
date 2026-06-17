@@ -1,14 +1,12 @@
 #pragma once
-#include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
 #include <filesystem>
 #include <fstream>
+#include <string>
 
 namespace fs = std::filesystem;
 
-std::string GetCacheFilePath();
-void LoadCache();
-void SaveCache();
+std::string BuildStateJson();
+bool RestoreStateJson(const std::string& json);
 
 void SaveCallback(SKSE::SerializationInterface* a_intfc);
 

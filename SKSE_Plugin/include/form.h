@@ -20,3 +20,5 @@ void copyAppearence(RE::TESForm* source, RE::TESForm* target);
 
 
 RE::TESForm* AddForm(RE::TESForm* baseItem);
+
+RE::TESForm* AddFormByType(RE::FormType formType);

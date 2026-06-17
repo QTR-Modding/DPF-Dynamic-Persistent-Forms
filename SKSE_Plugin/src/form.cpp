@@ -140,38 +140,104 @@ void copyAppearence(RE::TESForm* source, RE::TESForm* target) {
 }
 
 
+namespace {
+    RE::TESForm* CreateFormInstance(const RE::FormType formType, const RE::FormID formId) {
+        const auto factory = RE::IFormFactory::GetFormFactoryByType(formType);
+        if (!factory) {
+            logger::error("No form factory for form type {}", static_cast<uint32_t>(formType));
+            return nullptr;
+        }
+
+        auto* result = factory->Create();
+        if (!result) {
+            logger::error("Factory returned null for form type {}", static_cast<uint32_t>(formType));
+            return nullptr;
+        }
+
+        result->SetFormID(formId, false);
+        return result;
+    }
+
+    RE::TESForm* ReuseDeletedSlot(const RE::FormType formType, RE::TESForm* baseItem) {
+        RE::TESForm* result = nullptr;
+        EachFormData([&](FormRecord* item) {
+            if (!item->deleted || item->formType != formType || !IsDynamicFormID(item->formId)) {
+                return true;
+            }
+
+            logger::info("Reusing deleted DPF slot {:08X}", item->formId);
+            result = CreateFormInstance(formType, item->formId);
+            if (!result) {
+                return false;
+            }
+
+            item->Undelete(result, formType);
+            item->baseForm = baseItem;
+            item->modelForm = nullptr;
+            if (baseItem) {
+                applyPattern(item);
+            }
+            return false;
+        });
+        return result;
+    }
+}
+
 RE::TESForm* AddForm(RE::TESForm* baseItem) {
     if (!espFound) {
         return nullptr;
     }
+    if (!baseItem) {
+        logger::error("Create(baseItem) was called with a null baseItem. Use CreateByType for empty forms.");
+        return nullptr;
+    }
 
-    RE::TESForm* result = nullptr;
-    EachFormData([&](FormRecord* item) {
-        if (item->deleted) {
-            logger::info("item undeleted", item->formId);
-            const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
-            result = factory->Create();
-            result->SetFormID(item->formId, false);
-            item->Undelete(result, baseItem->GetFormType());
-            item->baseForm = baseItem;
-            applyPattern(item);
-            return false;
-        }
-        return true;
-    });
-
-    if (result) {
-        return result;
+    if (auto* reused = ReuseDeletedSlot(baseItem->GetFormType(), baseItem)) {
+        return reused;
     }
 
     logger::info("item created");
-    const auto factory = RE::IFormFactory::GetFormFactoryByType(baseItem->GetFormType());
-    const auto newForm = factory->Create();
-    newForm->SetFormID(lastFormId, false);
-    const auto slot = FormRecord::CreateNew(newForm, baseItem->GetFormType(), lastFormId);
-    incrementLastFormID();
+    const auto formId = AllocateDynamicFormID();
+    if (formId == 0) {
+        return nullptr;
+    }
+
+    const auto newForm = CreateFormInstance(baseItem->GetFormType(), formId);
+    if (!newForm) {
+        return nullptr;
+    }
+
+    const auto slot = FormRecord::CreateNew(newForm, baseItem->GetFormType(), formId);
     slot->baseForm = baseItem;
     applyPattern(slot);
+    AddFormData(slot);
+    return newForm;
+}
+
+RE::TESForm* AddFormByType(const RE::FormType formType) {
+    if (!espFound) {
+        return nullptr;
+    }
+    if (formType == RE::FormType::None) {
+        logger::error("CreateByType called with FormType::None");
+        return nullptr;
+    }
+
+    if (auto* reused = ReuseDeletedSlot(formType, nullptr)) {
+        return reused;
+    }
+
+    const auto formId = AllocateDynamicFormID();
+    if (formId == 0) {
+        return nullptr;
+    }
+
+    auto* newForm = CreateFormInstance(formType, formId);
+    if (!newForm) {
+        return nullptr;
+    }
+
+    auto* slot = FormRecord::CreateNew(newForm, formType, formId);
     AddFormData(slot);
     return newForm;
 }

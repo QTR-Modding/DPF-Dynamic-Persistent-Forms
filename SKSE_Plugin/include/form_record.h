@@ -27,4 +27,5 @@ public:
     bool deleted = false;
     RE::FormType formType{};
     RE::FormID formId{};
+    uint32_t order = 0;
 };

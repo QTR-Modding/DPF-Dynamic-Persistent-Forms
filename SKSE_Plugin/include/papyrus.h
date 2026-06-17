@@ -3,6 +3,8 @@
 
 RE::TESForm* Create(RE::StaticFunctionTag*, RE::TESForm* baseItem);
 
+RE::TESForm* CreateByType(RE::StaticFunctionTag*, uint32_t formType);
+
 void Track(RE::StaticFunctionTag*, RE::TESForm* baseItem);
 
 void UnTrack(RE::StaticFunctionTag*, RE::TESForm* form);

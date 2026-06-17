@@ -1,7 +1,9 @@
-scriptName DynamicPersistentForms hidden
+﻿scriptName DynamicPersistentForms hidden
 
 ; Creates a new form that is a copy of given base form, changes to that form will be persisted in the save game.
 Form function Create(Form item) global native
+; Creates a new empty form of the requested FormType and lets DynamicPersistentForms own its persistent FormID slot.
+Form function CreateByType(int formType) global native
 ; Dispose a form that was created using the previous function.
 function Dispose(Form item) global native 
 
@@ -45,3 +47,4 @@ function SetAmmoProjectile(Ammo ammo, Projectile projectile) global native
 function SetSoulGemCapacity(SoulGem gem, int capacity) global native
 function SetSoulGemCurrentSoul(SoulGem gem, int capacity) global native
 function LinkSoulGems(SoulGem empty, SoulGem filled) global native
+

@@ -1,9 +1,8 @@
-#include "form_record.h"
-#include "model.h"
-#include "persistence.h"
-#include "papyrus.h"
 #include "Services.h"
-
+#include "logger.h"
+#include "model.h"
+#include "papyrus.h"
+#include "persistence.h"
 
 class DPFInterfaceImpl : public DPF::IDynamicPersistentForms {
 public:
@@ -31,6 +30,10 @@ public:
     void UnTrack(RE::TESForm* item) override {
         Services::UnTrack(item);
     }
+
+    RE::TESForm* CreateByType(const uint32_t formType) override {
+        return Services::CreateByType(formType);
+    }
 };
 
 extern "C" __declspec(dllexport) void* GetDPFAPI() {
@@ -38,43 +41,26 @@ extern "C" __declspec(dllexport) void* GetDPFAPI() {
 }
 
 namespace {
-    // ReSharper disable once CppParameterMayBeConstPtrOrRef
     void OnMessage(SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ReadFirstFormIdFromESP();
-            LoadCache();
-            logger::info("loaded");
+            logger::info("DPF data loaded");
         } else if (message->type == SKSE::MessagingInterface::kNewGame) {
-            std::filesystem::remove("DynamicPersistentFormsCache.bin");
-            while (formRef.size() > 0) {
-                delete formRef.back();
-                formRef.pop_back();
-            }
-            while (formData.size() > 0) {
-                if (formData.back()) {
-                    if (formData.back()->actualForm) {
-                        formData.back()->actualForm->SetDelete(true);
-                    }
-                }
-                delete formData.back();
-                formData.pop_back();
-            }
-            ResetId();
-            logger::info("new game");
+            ClearRecords(true);
+            logger::info("DPF new game state cleared");
         }
     }
 }
 
-
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
+    SetupLog();
+    logger::info("Plugin loaded");
+
     SKSE::Init(skse);
-
-    //EnableLog("DynamicPersistentFormsLog.txt", "DPF 2");
-
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
     SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
 
-    auto serialization = SKSE::GetSerializationInterface();
+    const auto serialization = SKSE::GetSerializationInterface();
     serialization->SetUniqueID('DPF1');
     serialization->SetSaveCallback(SaveCallback);
     serialization->SetLoadCallback(LoadCallback);
