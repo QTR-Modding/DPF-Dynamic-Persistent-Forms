@@ -2,27 +2,56 @@
 #include "model.h"
 #include "serializer.h"
 #include <algorithm>
-#include <limits>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
 
 namespace {
     constexpr uint32_t kRegistryMagic = 0x44504643;  // DPFC
-    constexpr uint32_t kRegistrySchemaVersion = 1;
-    constexpr uint32_t kNoOwnerIndex = std::numeric_limits<uint32_t>::max();
+    constexpr uint8_t kRegistrySchemaVersion = 2;
     std::mutex registryMutex;
 
     template <typename T>
-    void WriteString(Serializer<T>* serializer, const std::string& value) {
-        serializer->WriteString(value.c_str());
+    void WriteVarUInt(Serializer<T>* serializer, uint32_t value) {
+        while (value >= 0x80) {
+            serializer->template Write<uint8_t>(static_cast<uint8_t>(value | 0x80));
+            value >>= 7;
+        }
+        serializer->template Write<uint8_t>(static_cast<uint8_t>(value));
     }
 
     template <typename T>
-    std::string ReadStoredString(Serializer<T>* serializer) {
-        const auto value = serializer->ReadString();
-        std::string result = value ? value : "";
-        delete[] value;
+    uint32_t ReadVarUInt(Serializer<T>* serializer) {
+        uint32_t result = 0;
+        uint32_t shift = 0;
+        while (shift < 32) {
+            const auto byte = serializer->template Read<uint8_t>();
+            result |= static_cast<uint32_t>(byte & 0x7f) << shift;
+            if ((byte & 0x80) == 0) {
+                return result;
+            }
+            shift += 7;
+        }
+        logger::error("DPF registry cache has an invalid varint");
+        return 0;
+    }
+
+    template <typename T>
+    void WriteCompactString(Serializer<T>* serializer, const std::string& value) {
+        WriteVarUInt(serializer, static_cast<uint32_t>(value.size()));
+        for (const auto ch : value) {
+            serializer->template Write<char>(ch);
+        }
+    }
+
+    template <typename T>
+    std::string ReadCompactString(Serializer<T>* serializer) {
+        const auto size = ReadVarUInt(serializer);
+        std::string result;
+        result.resize(size);
+        for (uint32_t i = 0; i < size; ++i) {
+            result[i] = serializer->template Read<char>();
+        }
         return result;
     }
 
@@ -68,27 +97,27 @@ namespace {
         }
 
         serializer->template Write<uint32_t>(kRegistryMagic);
-        serializer->template Write<uint32_t>(kRegistrySchemaVersion);
-        WriteString(serializer, dynamicPluginName);
+        serializer->template Write<uint8_t>(kRegistrySchemaVersion);
+        WriteCompactString(serializer, dynamicPluginName);
 
-        serializer->template Write<uint32_t>(static_cast<uint32_t>(owners.size()));
+        WriteVarUInt(serializer, static_cast<uint32_t>(owners.size()));
         for (const auto& owner : owners) {
-            WriteString(serializer, owner);
+            WriteCompactString(serializer, owner);
         }
 
-        serializer->template Write<uint32_t>(static_cast<uint32_t>(sorted.size()));
+        WriteVarUInt(serializer, static_cast<uint32_t>(sorted.size()));
         for (const auto& slot : sorted) {
-            serializer->template Write<uint32_t>(slot.localId);
-            serializer->template Write<uint32_t>(static_cast<uint32_t>(slot.formType));
-            serializer->template Write<uint32_t>(slot.owner.empty() ? kNoOwnerIndex : ownerIndexes[slot.owner]);
-            WriteString(serializer, slot.key);
+            WriteVarUInt(serializer, slot.localId);
+            WriteVarUInt(serializer, static_cast<uint32_t>(slot.formType));
+            WriteVarUInt(serializer, slot.owner.empty() ? 0 : ownerIndexes[slot.owner] + 1);
+            WriteCompactString(serializer, slot.key);
         }
     }
 
     template <typename T>
     bool RestoreRegistry(Serializer<T>* serializer) {
         const auto magic = serializer->template Read<uint32_t>();
-        const auto version = serializer->template Read<uint32_t>();
+        const auto version = serializer->template Read<uint8_t>();
         if (magic != kRegistryMagic || version != kRegistrySchemaVersion) {
             logger::warn("DPF registry binary cache is missing or unsupported; starting with empty schema {} registry", kRegistrySchemaVersion);
             ResetDynamicState();
@@ -96,25 +125,25 @@ namespace {
         }
 
         ResetDynamicState();
-        dynamicPluginName = ReadStoredString(serializer);
+        dynamicPluginName = ReadCompactString(serializer);
 
         std::vector<std::string> owners;
-        const auto ownerCount = serializer->template Read<uint32_t>();
+        const auto ownerCount = ReadVarUInt(serializer);
         owners.reserve(ownerCount);
         for (uint32_t i = 0; i < ownerCount; ++i) {
-            owners.push_back(ReadStoredString(serializer));
+            owners.push_back(ReadCompactString(serializer));
         }
 
-        const auto slotCount = serializer->template Read<uint32_t>();
+        const auto slotCount = ReadVarUInt(serializer);
         for (uint32_t i = 0; i < slotCount; ++i) {
-            const auto localId = serializer->template Read<uint32_t>();
-            const auto formType = static_cast<RE::FormType>(serializer->template Read<uint32_t>());
-            const auto ownerIndex = serializer->template Read<uint32_t>();
+            const auto localId = ReadVarUInt(serializer);
+            const auto formType = static_cast<RE::FormType>(ReadVarUInt(serializer));
+            const auto ownerIndex = ReadVarUInt(serializer);
             std::string owner;
-            if (ownerIndex != kNoOwnerIndex && ownerIndex < owners.size()) {
-                owner = owners[ownerIndex];
+            if (ownerIndex > 0 && ownerIndex - 1 < owners.size()) {
+                owner = owners[ownerIndex - 1];
             }
-            const auto key = ReadStoredString(serializer);
+            const auto key = ReadCompactString(serializer);
 
             if (!RegisterDynamicSlot(localId, formType, owner, key)) {
                 logger::warn("Ignoring invalid DPF registry slot {:06X}", localId);
