@@ -4,8 +4,6 @@
 
 namespace fs = std::filesystem;
 
-std::string BuildRegistryJson();
-bool RestoreRegistryJson(const std::string& json);
 bool LoadGlobalRegistry();
 bool SaveGlobalRegistry();
 std::string GetGlobalRegistryPath();

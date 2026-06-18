@@ -1,28 +1,41 @@
-﻿#include "persistence.h"
+#include "persistence.h"
 #include "model.h"
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
+#include "serializer.h"
 #include <algorithm>
-#include <fstream>
+#include <limits>
 #include <mutex>
-#include <sstream>
 #include <unordered_map>
 #include <vector>
 
 namespace {
+    constexpr uint32_t kRegistryMagic = 0x44504643;  // DPFC
     constexpr uint32_t kRegistrySchemaVersion = 1;
+    constexpr uint32_t kNoOwnerIndex = std::numeric_limits<uint32_t>::max();
     std::mutex registryMutex;
 
-    uint32_t ParseUInt(const rapidjson::Value& value, const uint32_t fallback = 0) {
-        return value.IsUint() ? value.GetUint() : fallback;
+    template <typename T>
+    void WriteString(Serializer<T>* serializer, const std::string& value) {
+        serializer->WriteString(value.c_str());
     }
 
-    template <class Allocator>
-    rapidjson::Value StringValue(Allocator& allocator, const std::string& text) {
-        rapidjson::Value value;
-        value.SetString(text.c_str(), static_cast<rapidjson::SizeType>(text.size()), allocator);
-        return value;
+    template <typename T>
+    std::string ReadStoredString(Serializer<T>* serializer) {
+        const auto value = serializer->ReadString();
+        std::string result = value ? value : "";
+        delete[] value;
+        return result;
+    }
+
+    std::vector<DynamicSlot> GetSortedSlots() {
+        std::vector<DynamicSlot> sorted;
+        sorted.reserve(dynamicSlots.size());
+        for (const auto& [localId, slot] : dynamicSlots) {
+            sorted.push_back(slot);
+        }
+        std::ranges::sort(sorted, [](const auto& lhs, const auto& rhs) {
+            return lhs.localId < rhs.localId;
+        });
+        return sorted;
     }
 
     void RecalculateNextDynamicLocalId() {
@@ -37,120 +50,85 @@ namespace {
 
         nextDynamicLocalId = 0x00ffffff;
     }
-}
 
-std::string GetGlobalRegistryPath() {
-    return "Data/SKSE/Plugins/DPF_Cache.json";
-}
+    template <typename T>
+    void StoreRegistry(Serializer<T>* serializer) {
+        const auto sorted = GetSortedSlots();
 
-std::string BuildRegistryJson() {
-    rapidjson::Document document(rapidjson::kObjectType);
-    auto& allocator = document.GetAllocator();
-
-    std::vector<DynamicSlot> sorted;
-    sorted.reserve(dynamicSlots.size());
-    for (const auto& [localId, slot] : dynamicSlots) {
-        sorted.push_back(slot);
-    }
-    std::ranges::sort(sorted, [](const auto& lhs, const auto& rhs) {
-        return lhs.localId < rhs.localId;
-    });
-
-    std::unordered_map<std::string, uint32_t> ownerIndexes;
-    rapidjson::Value owners(rapidjson::kArrayType);
-    for (const auto& slotData : sorted) {
-        if (slotData.owner.empty() || ownerIndexes.contains(slotData.owner)) {
-            continue;
-        }
-
-        const auto index = static_cast<uint32_t>(ownerIndexes.size());
-        ownerIndexes[slotData.owner] = index;
-        auto ownerValue = StringValue(allocator, slotData.owner);
-        owners.PushBack(ownerValue, allocator);
-    }
-
-    rapidjson::Value slots(rapidjson::kArrayType);
-    for (const auto& slotData : sorted) {
-        rapidjson::Value slot(rapidjson::kArrayType);
-        slot.PushBack(slotData.localId, allocator);
-        slot.PushBack(static_cast<uint32_t>(slotData.formType), allocator);
-        if (slotData.owner.empty()) {
-            rapidjson::Value ownerIndex;
-            ownerIndex.SetNull();
-            slot.PushBack(ownerIndex, allocator);
-        } else {
-            slot.PushBack(ownerIndexes[slotData.owner], allocator);
-        }
-        auto keyValue = StringValue(allocator, slotData.key);
-        slot.PushBack(keyValue, allocator);
-        slots.PushBack(slot, allocator);
-    }
-
-    document.AddMember("v", kRegistrySchemaVersion, allocator);
-    document.AddMember("p", StringValue(allocator, dynamicPluginName), allocator);
-    document.AddMember("o", owners, allocator);
-    document.AddMember("s", slots, allocator);
-
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-    document.Accept(writer);
-    return { buffer.GetString(), buffer.GetSize() };
-}
-
-bool RestoreRegistryJson(const std::string& json) {
-    if (json.empty()) {
-        return false;
-    }
-
-    rapidjson::Document document;
-    document.Parse(json.c_str(), json.size());
-    if (document.HasParseError() || !document.IsObject()) {
-        logger::error("DPF global registry is not valid JSON");
-        return false;
-    }
-
-    if (!document.HasMember("v") || !document["v"].IsUint() || document["v"].GetUint() != kRegistrySchemaVersion) {
-        logger::warn("DPF global registry schema is missing or unsupported; starting with empty schema {} registry", kRegistrySchemaVersion);
-        ResetDynamicState();
-        return SaveGlobalRegistry();
-    }
-
-    ResetDynamicState();
-
-    if (document.HasMember("p") && document["p"].IsString()) {
-        dynamicPluginName = document["p"].GetString();
-    }
-
-    std::vector<std::string> owners;
-    if (document.HasMember("o") && document["o"].IsArray()) {
-        for (const auto& owner : document["o"].GetArray()) {
-            owners.emplace_back(owner.IsString() ? owner.GetString() : "");
-        }
-    }
-
-    if (document.HasMember("s") && document["s"].IsArray()) {
-        for (const auto& slot : document["s"].GetArray()) {
-            if (!slot.IsArray() || slot.Size() < 4) {
+        std::unordered_map<std::string, uint32_t> ownerIndexes;
+        std::vector<std::string> owners;
+        for (const auto& slot : sorted) {
+            if (slot.owner.empty() || ownerIndexes.contains(slot.owner)) {
                 continue;
             }
 
-            const auto localId = ParseUInt(slot[0]);
-            const auto formType = static_cast<RE::FormType>(ParseUInt(slot[1]));
+            const auto index = static_cast<uint32_t>(owners.size());
+            ownerIndexes[slot.owner] = index;
+            owners.push_back(slot.owner);
+        }
+
+        serializer->template Write<uint32_t>(kRegistryMagic);
+        serializer->template Write<uint32_t>(kRegistrySchemaVersion);
+        WriteString(serializer, dynamicPluginName);
+
+        serializer->template Write<uint32_t>(static_cast<uint32_t>(owners.size()));
+        for (const auto& owner : owners) {
+            WriteString(serializer, owner);
+        }
+
+        serializer->template Write<uint32_t>(static_cast<uint32_t>(sorted.size()));
+        for (const auto& slot : sorted) {
+            serializer->template Write<uint32_t>(slot.localId);
+            serializer->template Write<uint32_t>(static_cast<uint32_t>(slot.formType));
+            serializer->template Write<uint32_t>(slot.owner.empty() ? kNoOwnerIndex : ownerIndexes[slot.owner]);
+            WriteString(serializer, slot.key);
+        }
+    }
+
+    template <typename T>
+    bool RestoreRegistry(Serializer<T>* serializer) {
+        const auto magic = serializer->template Read<uint32_t>();
+        const auto version = serializer->template Read<uint32_t>();
+        if (magic != kRegistryMagic || version != kRegistrySchemaVersion) {
+            logger::warn("DPF registry binary cache is missing or unsupported; starting with empty schema {} registry", kRegistrySchemaVersion);
+            ResetDynamicState();
+            return SaveGlobalRegistry();
+        }
+
+        ResetDynamicState();
+        dynamicPluginName = ReadStoredString(serializer);
+
+        std::vector<std::string> owners;
+        const auto ownerCount = serializer->template Read<uint32_t>();
+        owners.reserve(ownerCount);
+        for (uint32_t i = 0; i < ownerCount; ++i) {
+            owners.push_back(ReadStoredString(serializer));
+        }
+
+        const auto slotCount = serializer->template Read<uint32_t>();
+        for (uint32_t i = 0; i < slotCount; ++i) {
+            const auto localId = serializer->template Read<uint32_t>();
+            const auto formType = static_cast<RE::FormType>(serializer->template Read<uint32_t>());
+            const auto ownerIndex = serializer->template Read<uint32_t>();
             std::string owner;
-            if (slot[2].IsUint() && slot[2].GetUint() < owners.size()) {
-                owner = owners[slot[2].GetUint()];
+            if (ownerIndex != kNoOwnerIndex && ownerIndex < owners.size()) {
+                owner = owners[ownerIndex];
             }
-            const std::string key = slot[3].IsString() ? slot[3].GetString() : "";
+            const auto key = ReadStoredString(serializer);
+
             if (!RegisterDynamicSlot(localId, formType, owner, key)) {
                 logger::warn("Ignoring invalid DPF registry slot {:06X}", localId);
             }
         }
+
+        RecalculateNextDynamicLocalId();
+        logger::info("Loaded DPF global registry with {} slots", dynamicSlots.size());
+        return true;
     }
+}
 
-    RecalculateNextDynamicLocalId();
-
-    logger::info("Loaded DPF global registry with {} slots", dynamicSlots.size());
-    return true;
+std::string GetGlobalRegistryPath() {
+    return "Data/SKSE/Plugins/DPF_Cache.bin";
 }
 
 bool LoadGlobalRegistry() {
@@ -162,15 +140,13 @@ bool LoadGlobalRegistry() {
         return SaveGlobalRegistry();
     }
 
-    std::ifstream file(path, std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
+    FileReader fileReader(path, std::ios::in | std::ios::binary);
+    if (!fileReader.IsOpen()) {
         logger::error("Could not open DPF global registry at {}", path);
         return false;
     }
 
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return RestoreRegistryJson(buffer.str());
+    return RestoreRegistry(&fileReader);
 }
 
 bool SaveGlobalRegistry() {
@@ -181,13 +157,13 @@ bool SaveGlobalRegistry() {
             fs::create_directories(registryPath.parent_path());
         }
 
-        std::ofstream file(registryPath, std::ios::out | std::ios::binary | std::ios::trunc);
-        if (!file.is_open()) {
+        FileWriter fileWriter(path, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!fileWriter.IsOpen()) {
             logger::error("Could not write DPF global registry at {}", path);
             return false;
         }
 
-        file << BuildRegistryJson();
+        StoreRegistry(&fileWriter);
         logger::debug("Saved DPF global registry to {}", path);
         return true;
     } catch (const std::exception& e) {
