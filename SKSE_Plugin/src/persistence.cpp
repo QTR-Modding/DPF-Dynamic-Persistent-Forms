@@ -1,4 +1,4 @@
-#include "persistence.h"
+﻿#include "persistence.h"
 #include "model.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -188,7 +188,7 @@ bool SaveGlobalRegistry() {
         }
 
         file << BuildRegistryJson();
-        logger::info("Saved DPF global registry to {}", path);
+        logger::debug("Saved DPF global registry to {}", path);
         return true;
     } catch (const std::exception& e) {
         logger::error("Error saving DPF global registry: {}", e.what());

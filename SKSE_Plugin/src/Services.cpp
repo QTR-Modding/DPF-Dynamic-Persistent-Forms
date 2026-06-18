@@ -1,4 +1,4 @@
-#include "Services.h"
+﻿#include "Services.h"
 #include "form.h"
 #include "model.h"
 
@@ -9,7 +9,7 @@ RE::TESForm* Services::Create(RE::TESForm* baseItem) {
 
         auto* newForm = AddForm(baseItem);
         if (newForm) {
-            logger::info("new form id", newForm->GetFormID());
+            logger::debug("new form id", newForm->GetFormID());
         }
         return newForm;
     } catch (const std::exception&) {
@@ -22,7 +22,7 @@ RE::TESForm* Services::CreateByType(const uint32_t formType) {
     try {
         auto* newForm = AddFormByType(static_cast<RE::FormType>(formType));
         if (newForm) {
-            logger::info("new form id", newForm->GetFormID());
+            logger::debug("new form id", newForm->GetFormID());
         }
         return newForm;
     } catch (const std::exception&) {
