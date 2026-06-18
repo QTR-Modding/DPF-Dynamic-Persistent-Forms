@@ -258,10 +258,6 @@ RE::TESForm* AddFormByType(const RE::FormType formType) {
     return CreateRegisteredForm(ToDynamicLocalID(formId), formType, nullptr);
 }
 
-RE::TESForm* AddFormByTypeForOwner(const char* owner, const char* key, const RE::FormType formType) {
-    return GetOrCreateFormByOwnerKey(owner, key, formType);
-}
-
 RE::TESForm* GetOrCreateFormByLocalId(const uint32_t localId, const RE::FormType formType) {
     return CreateRegisteredForm(localId & 0x00ffffff, formType, nullptr);
 }
@@ -274,11 +270,7 @@ RE::TESForm* GetOrCreateFormByFormId(const RE::FormID formId, const RE::FormType
     return GetOrCreateFormByLocalId(ToDynamicLocalID(formId), formType);
 }
 
-RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw, const RE::FormType formType) {
-    return GetOrCreateFormByOwnerKeyEx(ownerRaw, keyRaw, formType, nullptr, nullptr);
-}
-
-RE::TESForm* GetOrCreateFormByOwnerKeyEx(const char* ownerRaw, const char* keyRaw, const RE::FormType formType,
+RE::TESForm* GetOrCreateFormByOwnerKey(const char* ownerRaw, const char* keyRaw, const RE::FormType formType,
     uint32_t* localIdOut, bool* existedOut) {
     if (localIdOut) {
         *localIdOut = 0;

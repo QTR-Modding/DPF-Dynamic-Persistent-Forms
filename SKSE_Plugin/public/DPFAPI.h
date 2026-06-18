@@ -6,7 +6,7 @@
 
 namespace DPF {
     constexpr auto InterfaceName = "DynamicPersistentForms";
-    constexpr uint32_t InterfaceVersion = 5;
+    constexpr uint32_t InterfaceVersion = 1;
 
     class IDynamicPersistentForms {
     public:
@@ -14,29 +14,21 @@ namespace DPF {
 
         virtual uint32_t GetVersion() const = 0;
 
-        // v1
         virtual RE::TESForm* Create(RE::TESForm* baseItem) = 0;
         virtual void Dispose(RE::TESForm* form) = 0;
         virtual void Track(RE::TESForm* item) = 0;
         virtual void UnTrack(RE::TESForm* item) = 0;
 
-        // v2
         virtual RE::TESForm* CreateByType(uint32_t formType) = 0;
 
-        // v3
         virtual RE::TESForm* GetOrCreateByLocalId(uint32_t localId, uint32_t formType) = 0;
         virtual RE::TESForm* GetOrCreateByFormId(RE::FormID formId, uint32_t formType) = 0;
 
-        // v4
-        virtual RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, uint32_t formType) = 0;
-        virtual RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType) = 0;
+        virtual RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType,
+            uint32_t* localId, bool* existed) = 0;
         virtual bool ReleaseByOwnerKey(const char* owner, const char* key) = 0;
         virtual bool ReleaseByLocalId(uint32_t localId, const char* owner) = 0;
         virtual uint32_t ReleaseOwner(const char* owner) = 0;
-
-        // v5
-        virtual RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, uint32_t formType,
-            uint32_t* localId, bool* existed) = 0;
     };
 
     using GetDPFAPI = void* (*)();

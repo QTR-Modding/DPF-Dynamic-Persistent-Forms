@@ -9,8 +9,6 @@ Form function GetOrCreateByLocalId(int localId, int formType) global native
 ; Returns or creates a persistent form using a form whose ID belongs to Dynamic Persistent Forms.esp.
 Form function GetOrCreateByFormId(Form formIdSource, int formType) global native
 ; Creates or returns a form owned by owner/key.
-Form function CreateByTypeForOwner(String owner, String key, int formType) global native
-; Creates or returns a form owned by owner/key.
 Form function GetOrCreateByOwnerKey(String owner, String key, int formType) global native
 ; Releases one owned slot by owner/key.
 bool function ReleaseByOwnerKey(String owner, String key) global native

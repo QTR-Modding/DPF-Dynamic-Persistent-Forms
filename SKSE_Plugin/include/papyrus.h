@@ -9,8 +9,6 @@ RE::TESForm* GetOrCreateByLocalId(RE::StaticFunctionTag*, uint32_t localId, uint
 
 RE::TESForm* GetOrCreateByFormId(RE::StaticFunctionTag*, RE::TESForm* formIdSource, uint32_t formType);
 
-RE::TESForm* CreateByTypeForOwner(RE::StaticFunctionTag*, RE::BSFixedString owner, RE::BSFixedString key, uint32_t formType);
-
 RE::TESForm* GetOrCreateByOwnerKey(RE::StaticFunctionTag*, RE::BSFixedString owner, RE::BSFixedString key, uint32_t formType);
 
 bool ReleaseByOwnerKey(RE::StaticFunctionTag*, RE::BSFixedString owner, RE::BSFixedString key);

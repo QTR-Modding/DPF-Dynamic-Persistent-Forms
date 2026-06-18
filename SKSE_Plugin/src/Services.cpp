@@ -48,28 +48,11 @@ RE::TESForm* Services::GetOrCreateByFormId(const RE::FormID formId, const uint32
     }
 }
 
-RE::TESForm* Services::CreateByTypeForOwner(const char* owner, const char* key, const uint32_t formType) {
-    std::lock_guard lock(serviceMutex);
-    try {
-        return AddFormByTypeForOwner(owner, key, static_cast<RE::FormType>(formType));
-    } catch (const std::exception&) {
-        return nullptr;
-    }
-}
-
-RE::TESForm* Services::GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType) {
-    std::lock_guard lock(serviceMutex);
-    try {
-        return GetOrCreateFormByOwnerKey(owner, key, static_cast<RE::FormType>(formType));
-    } catch (const std::exception&) {
-        return nullptr;
-    }
-}
-RE::TESForm* Services::GetOrCreateByOwnerKeyEx(const char* owner, const char* key, const uint32_t formType,
+RE::TESForm* Services::GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType,
     uint32_t* localId, bool* existed) {
     std::lock_guard lock(serviceMutex);
     try {
-        return GetOrCreateFormByOwnerKeyEx(owner, key, static_cast<RE::FormType>(formType), localId, existed);
+        return GetOrCreateFormByOwnerKey(owner, key, static_cast<RE::FormType>(formType), localId, existed);
     } catch (const std::exception&) {
         if (localId) {
             *localId = 0;

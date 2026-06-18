@@ -22,15 +22,11 @@ RE::TESForm* AddForm(RE::TESForm* baseItem);
 
 RE::TESForm* AddFormByType(RE::FormType formType);
 
-RE::TESForm* AddFormByTypeForOwner(const char* owner, const char* key, RE::FormType formType);
-
 RE::TESForm* GetOrCreateFormByLocalId(uint32_t localId, RE::FormType formType);
 
 RE::TESForm* GetOrCreateFormByFormId(RE::FormID formId, RE::FormType formType);
 
-RE::TESForm* GetOrCreateFormByOwnerKey(const char* owner, const char* key, RE::FormType formType);
-
-RE::TESForm* GetOrCreateFormByOwnerKeyEx(const char* owner, const char* key, RE::FormType formType, uint32_t* localId, bool* existed);
+RE::TESForm* GetOrCreateFormByOwnerKey(const char* owner, const char* key, RE::FormType formType, uint32_t* localId, bool* existed);
 
 bool ReleaseFormByOwnerKey(const char* owner, const char* key);
 

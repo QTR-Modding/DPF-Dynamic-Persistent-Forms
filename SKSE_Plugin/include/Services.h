@@ -14,11 +14,7 @@ namespace Services {
 
     RE::TESForm* GetOrCreateByFormId(RE::FormID formId, uint32_t formType);
 
-    RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, uint32_t formType);
-
-    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType);
-
-    RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, uint32_t formType, uint32_t* localId, bool* existed);
+    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType, uint32_t* localId, bool* existed);
 
     bool ReleaseByOwnerKey(const char* owner, const char* key);
 

@@ -24,12 +24,8 @@ RE::TESForm* GetOrCreateByFormId(RE::StaticFunctionTag*, RE::TESForm* formIdSour
     return Services::GetOrCreateByFormId(formIdSource->GetFormID(), formType);
 }
 
-RE::TESForm* CreateByTypeForOwner(RE::StaticFunctionTag*, const RE::BSFixedString owner, const RE::BSFixedString key, const uint32_t formType) {
-    return Services::CreateByTypeForOwner(owner.c_str(), key.c_str(), formType);
-}
-
 RE::TESForm* GetOrCreateByOwnerKey(RE::StaticFunctionTag*, const RE::BSFixedString owner, const RE::BSFixedString key, const uint32_t formType) {
-    return Services::GetOrCreateByOwnerKey(owner.c_str(), key.c_str(), formType);
+    return Services::GetOrCreateByOwnerKey(owner.c_str(), key.c_str(), formType, nullptr, nullptr);
 }
 
 bool ReleaseByOwnerKey(RE::StaticFunctionTag*, const RE::BSFixedString owner, const RE::BSFixedString key) {
@@ -336,7 +332,6 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("CreateByType", "DynamicPersistentForms", CreateByType);
     vm->RegisterFunction("GetOrCreateByLocalId", "DynamicPersistentForms", GetOrCreateByLocalId);
     vm->RegisterFunction("GetOrCreateByFormId", "DynamicPersistentForms", GetOrCreateByFormId);
-    vm->RegisterFunction("CreateByTypeForOwner", "DynamicPersistentForms", CreateByTypeForOwner);
     vm->RegisterFunction("GetOrCreateByOwnerKey", "DynamicPersistentForms", GetOrCreateByOwnerKey);
     vm->RegisterFunction("ReleaseByOwnerKey", "DynamicPersistentForms", ReleaseByOwnerKey);
     vm->RegisterFunction("ReleaseByLocalId", "DynamicPersistentForms", ReleaseByLocalId);

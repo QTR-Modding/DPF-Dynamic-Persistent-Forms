@@ -203,6 +203,7 @@ bool ReleaseDynamicSlot(const uint32_t localId, std::string_view owner) {
     RemoveOwnerKeyIndex(existing->second);
     dynamicSlots.erase(existing);
     reservedDynamicLocalIds.erase(normalized);
+    nextDynamicLocalId = std::min(nextDynamicLocalId, normalized);
     return true;
 }
 

@@ -1,43 +1,21 @@
-﻿#include "persistence.h"
+#include "persistence.h"
 #include "model.h"
 #include "rapidjson/document.h"
-#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include <algorithm>
-#include <charconv>
 #include <fstream>
-#include <iomanip>
 #include <mutex>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 namespace {
-    constexpr uint32_t kRegistrySchemaVersion = 2;
+    constexpr uint32_t kRegistrySchemaVersion = 1;
     std::mutex registryMutex;
 
-    std::string ToHex(const uint32_t value, const int width = 0) {
-        std::ostringstream stream;
-        stream << "0x" << std::uppercase << std::hex << std::setfill('0');
-        if (width > 0) {
-            stream << std::setw(width);
-        }
-        stream << value;
-        return stream.str();
-    }
-
     uint32_t ParseUInt(const rapidjson::Value& value, const uint32_t fallback = 0) {
-        if (value.IsUint()) {
-            return value.GetUint();
-        }
-        if (!value.IsString()) {
-            return fallback;
-        }
-
-        try {
-            return static_cast<uint32_t>(std::stoul(value.GetString(), nullptr, 0));
-        } catch (...) {
-            return fallback;
-        }
+        return value.IsUint() ? value.GetUint() : fallback;
     }
 
     template <class Allocator>
@@ -45,6 +23,19 @@ namespace {
         rapidjson::Value value;
         value.SetString(text.c_str(), static_cast<rapidjson::SizeType>(text.size()), allocator);
         return value;
+    }
+
+    void RecalculateNextDynamicLocalId() {
+        uint32_t localId = firstDynamicLocalId;
+        while (localId < 0x00ffffff) {
+            if (!reservedDynamicLocalIds.contains(localId) && !dynamicSlots.contains(localId)) {
+                nextDynamicLocalId = localId;
+                return;
+            }
+            ++localId;
+        }
+
+        nextDynamicLocalId = 0x00ffffff;
     }
 }
 
@@ -56,11 +47,6 @@ std::string BuildRegistryJson() {
     rapidjson::Document document(rapidjson::kObjectType);
     auto& allocator = document.GetAllocator();
 
-    document.AddMember("schemaVersion", kRegistrySchemaVersion, allocator);
-    document.AddMember("dynamicPluginFile", StringValue(allocator, dynamicPluginName), allocator);
-    document.AddMember("nextLocalId", StringValue(allocator, ToHex(nextDynamicLocalId, 6)), allocator);
-
-    rapidjson::Value slots(rapidjson::kArrayType);
     std::vector<DynamicSlot> sorted;
     sorted.reserve(dynamicSlots.size());
     for (const auto& [localId, slot] : dynamicSlots) {
@@ -70,19 +56,43 @@ std::string BuildRegistryJson() {
         return lhs.localId < rhs.localId;
     });
 
+    std::unordered_map<std::string, uint32_t> ownerIndexes;
+    rapidjson::Value owners(rapidjson::kArrayType);
     for (const auto& slotData : sorted) {
-        rapidjson::Value slot(rapidjson::kObjectType);
-        slot.AddMember("localId", StringValue(allocator, ToHex(slotData.localId, 6)), allocator);
-        slot.AddMember("formType", static_cast<uint32_t>(slotData.formType), allocator);
-        slot.AddMember("state", StringValue(allocator, "used"), allocator);
-        slot.AddMember("owner", StringValue(allocator, slotData.owner), allocator);
-        slot.AddMember("key", StringValue(allocator, slotData.key), allocator);
+        if (slotData.owner.empty() || ownerIndexes.contains(slotData.owner)) {
+            continue;
+        }
+
+        const auto index = static_cast<uint32_t>(ownerIndexes.size());
+        ownerIndexes[slotData.owner] = index;
+        auto ownerValue = StringValue(allocator, slotData.owner);
+        owners.PushBack(ownerValue, allocator);
+    }
+
+    rapidjson::Value slots(rapidjson::kArrayType);
+    for (const auto& slotData : sorted) {
+        rapidjson::Value slot(rapidjson::kArrayType);
+        slot.PushBack(slotData.localId, allocator);
+        slot.PushBack(static_cast<uint32_t>(slotData.formType), allocator);
+        if (slotData.owner.empty()) {
+            rapidjson::Value ownerIndex;
+            ownerIndex.SetNull();
+            slot.PushBack(ownerIndex, allocator);
+        } else {
+            slot.PushBack(ownerIndexes[slotData.owner], allocator);
+        }
+        auto keyValue = StringValue(allocator, slotData.key);
+        slot.PushBack(keyValue, allocator);
         slots.PushBack(slot, allocator);
     }
-    document.AddMember("slots", slots, allocator);
+
+    document.AddMember("v", kRegistrySchemaVersion, allocator);
+    document.AddMember("p", StringValue(allocator, dynamicPluginName), allocator);
+    document.AddMember("o", owners, allocator);
+    document.AddMember("s", slots, allocator);
 
     rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     document.Accept(writer);
     return { buffer.GetString(), buffer.GetSize() };
 }
@@ -99,8 +109,7 @@ bool RestoreRegistryJson(const std::string& json) {
         return false;
     }
 
-    if (!document.HasMember("schemaVersion") || !document["schemaVersion"].IsUint() ||
-        document["schemaVersion"].GetUint() != kRegistrySchemaVersion) {
+    if (!document.HasMember("v") || !document["v"].IsUint() || document["v"].GetUint() != kRegistrySchemaVersion) {
         logger::warn("DPF global registry schema is missing or unsupported; starting with empty schema {} registry", kRegistrySchemaVersion);
         ResetDynamicState();
         return SaveGlobalRegistry();
@@ -108,25 +117,37 @@ bool RestoreRegistryJson(const std::string& json) {
 
     ResetDynamicState();
 
-    if (document.HasMember("nextLocalId")) {
-        nextDynamicLocalId = std::max(ParseUInt(document["nextLocalId"], firstDynamicLocalId), firstDynamicLocalId);
+    if (document.HasMember("p") && document["p"].IsString()) {
+        dynamicPluginName = document["p"].GetString();
     }
 
-    if (document.HasMember("slots") && document["slots"].IsArray()) {
-        for (const auto& slot : document["slots"].GetArray()) {
-            if (!slot.IsObject() || !slot.HasMember("localId") || !slot.HasMember("formType")) {
+    std::vector<std::string> owners;
+    if (document.HasMember("o") && document["o"].IsArray()) {
+        for (const auto& owner : document["o"].GetArray()) {
+            owners.emplace_back(owner.IsString() ? owner.GetString() : "");
+        }
+    }
+
+    if (document.HasMember("s") && document["s"].IsArray()) {
+        for (const auto& slot : document["s"].GetArray()) {
+            if (!slot.IsArray() || slot.Size() < 4) {
                 continue;
             }
 
-            const auto localId = ParseUInt(slot["localId"]);
-            const auto formType = static_cast<RE::FormType>(ParseUInt(slot["formType"]));
-            const std::string owner = slot.HasMember("owner") && slot["owner"].IsString() ? slot["owner"].GetString() : "";
-            const std::string key = slot.HasMember("key") && slot["key"].IsString() ? slot["key"].GetString() : "";
+            const auto localId = ParseUInt(slot[0]);
+            const auto formType = static_cast<RE::FormType>(ParseUInt(slot[1]));
+            std::string owner;
+            if (slot[2].IsUint() && slot[2].GetUint() < owners.size()) {
+                owner = owners[slot[2].GetUint()];
+            }
+            const std::string key = slot[3].IsString() ? slot[3].GetString() : "";
             if (!RegisterDynamicSlot(localId, formType, owner, key)) {
                 logger::warn("Ignoring invalid DPF registry slot {:06X}", localId);
             }
         }
     }
+
+    RecalculateNextDynamicLocalId();
 
     logger::info("Loaded DPF global registry with {} slots", dynamicSlots.size());
     return true;

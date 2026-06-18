@@ -43,12 +43,9 @@ public:
         return Services::GetOrCreateByFormId(formId, formType);
     }
 
-    RE::TESForm* CreateByTypeForOwner(const char* owner, const char* key, const uint32_t formType) override {
-        return Services::CreateByTypeForOwner(owner, key, formType);
-    }
-
-    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType) override {
-        return Services::GetOrCreateByOwnerKey(owner, key, formType);
+    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType,
+        uint32_t* localId, bool* existed) override {
+        return Services::GetOrCreateByOwnerKey(owner, key, formType, localId, existed);
     }
 
     bool ReleaseByOwnerKey(const char* owner, const char* key) override {
@@ -61,11 +58,6 @@ public:
 
     uint32_t ReleaseOwner(const char* owner) override {
         return Services::ReleaseOwner(owner);
-    }
-
-    RE::TESForm* GetOrCreateByOwnerKeyEx(const char* owner, const char* key, const uint32_t formType,
-        uint32_t* localId, bool* existed) override {
-        return Services::GetOrCreateByOwnerKeyEx(owner, key, formType, localId, existed);
     }
 };
 
