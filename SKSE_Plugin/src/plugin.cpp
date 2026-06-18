@@ -1,9 +1,8 @@
-#include "form_record.h"
-#include "model.h"
-#include "persistence.h"
-#include "papyrus.h"
 #include "Services.h"
-
+#include "logger.h"
+#include "model.h"
+#include "papyrus.h"
+#include "persistence.h"
 
 class DPFInterfaceImpl : public DPF::IDynamicPersistentForms {
 public:
@@ -31,6 +30,35 @@ public:
     void UnTrack(RE::TESForm* item) override {
         Services::UnTrack(item);
     }
+
+    RE::TESForm* CreateByType(const uint32_t formType) override {
+        return Services::CreateByType(formType);
+    }
+
+    RE::TESForm* GetOrCreateByLocalId(const uint32_t localId, const uint32_t formType) override {
+        return Services::GetOrCreateByLocalId(localId, formType);
+    }
+
+    RE::TESForm* GetOrCreateByFormId(const RE::FormID formId, const uint32_t formType) override {
+        return Services::GetOrCreateByFormId(formId, formType);
+    }
+
+    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, const uint32_t formType,
+        uint32_t* localId, bool* existed) override {
+        return Services::GetOrCreateByOwnerKey(owner, key, formType, localId, existed);
+    }
+
+    bool ReleaseByOwnerKey(const char* owner, const char* key) override {
+        return Services::ReleaseByOwnerKey(owner, key);
+    }
+
+    bool ReleaseByLocalId(const uint32_t localId, const char* owner) override {
+        return Services::ReleaseByLocalId(localId, owner);
+    }
+
+    uint32_t ReleaseOwner(const char* owner) override {
+        return Services::ReleaseOwner(owner);
+    }
 };
 
 extern "C" __declspec(dllexport) void* GetDPFAPI() {
@@ -38,46 +66,32 @@ extern "C" __declspec(dllexport) void* GetDPFAPI() {
 }
 
 namespace {
-    // ReSharper disable once CppParameterMayBeConstPtrOrRef
     void OnMessage(SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ReadFirstFormIdFromESP();
-            LoadCache();
-            logger::info("loaded");
+            LoadGlobalRegistry();
+            logger::info("DynamicPersistentForms data loaded");
         } else if (message->type == SKSE::MessagingInterface::kNewGame) {
-            std::filesystem::remove("DynamicPersistentFormsCache.bin");
-            while (formRef.size() > 0) {
-                delete formRef.back();
-                formRef.pop_back();
-            }
-            while (formData.size() > 0) {
-                if (formData.back()) {
-                    if (formData.back()->actualForm) {
-                        formData.back()->actualForm->SetDelete(true);
-                    }
-                }
-                delete formData.back();
-                formData.pop_back();
-            }
-            ResetId();
-            logger::info("new game");
+            ClearRecords(true);
+            logger::info("DPF new game state cleared");
         }
     }
 }
 
-
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
+    SetupLog();
+    logger::info("Plugin loaded");
+
     SKSE::Init(skse);
-
-    //EnableLog("DynamicPersistentFormsLog.txt", "DPF 2");
-
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
     SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
 
-    auto serialization = SKSE::GetSerializationInterface();
+    const auto serialization = SKSE::GetSerializationInterface();
     serialization->SetUniqueID('DPF1');
     serialization->SetSaveCallback(SaveCallback);
     serialization->SetLoadCallback(LoadCallback);
 
     return true;
 }
+
+

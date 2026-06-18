@@ -1,140 +1,211 @@
 #include "persistence.h"
-#include "form_record_serializer.h"
+#include "model.h"
 #include "serializer.h"
+#include <algorithm>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
 
-std::mutex callbackMutext;
+namespace {
+    constexpr uint32_t kRegistryMagic = 0x44504643;  // DPFC
+    constexpr uint8_t kRegistrySchemaVersion = 2;
+    std::mutex registryMutex;
 
-void SaveCallback(SKSE::SerializationInterface* a_intfc) {
-    std::lock_guard lock(callbackMutext);
-    try {
-        logger::info("SAVE CAllBACK");
-        if (!a_intfc->OpenRecord('ARR_', 1)) {
-            logger::error("Failed to open record for arr!");
+    template <typename T>
+    void WriteVarUInt(Serializer<T>* serializer, uint32_t value) {
+        while (value >= 0x80) {
+            serializer->template Write<uint8_t>(static_cast<uint8_t>(value | 0x80));
+            value >>= 7;
         }
-        else {
-            const auto serializer = new SaveDataSerializer(a_intfc);
-            StoreAllFormRecords(serializer);
-        }
-        SaveCache();
+        serializer->template Write<uint8_t>(static_cast<uint8_t>(value));
     }
-    catch (const std::exception&) {
-        logger::error("error saving");
-    }
-}
 
-void LoadCallback(SKSE::SerializationInterface* a_intfc) {
-    std::lock_guard lock(callbackMutext);
-    try {
-        logger::info("LOAD CAllBACK");
-
-        uint32_t type;
-        uint32_t version;
-        uint32_t length;
-        bool refreshGame = false;
-
-        while (a_intfc->GetNextRecordInfo(type, version, length)) {
-            switch (type) {
-            case 'ARR_': {
-                const auto serializer = new SaveDataSerializer(a_intfc);
-                refreshGame = RestoreAllFormRecords(serializer);
-                delete serializer;
+    template <typename T>
+    uint32_t ReadVarUInt(Serializer<T>* serializer) {
+        uint32_t result = 0;
+        uint32_t shift = 0;
+        while (shift < 32) {
+            const auto byte = serializer->template Read<uint8_t>();
+            result |= static_cast<uint32_t>(byte & 0x7f) << shift;
+            if ((byte & 0x80) == 0) {
+                return result;
             }
-                       break;
-            default:
-                logger::error("Unrecognized signature type!");
-                break;
+            shift += 7;
+        }
+        logger::error("DPF registry cache has an invalid varint");
+        return 0;
+    }
+
+    template <typename T>
+    void WriteCompactString(Serializer<T>* serializer, const std::string& value) {
+        WriteVarUInt(serializer, static_cast<uint32_t>(value.size()));
+        for (const auto ch : value) {
+            serializer->template Write<char>(ch);
+        }
+    }
+
+    template <typename T>
+    std::string ReadCompactString(Serializer<T>* serializer) {
+        const auto size = ReadVarUInt(serializer);
+        std::string result;
+        result.resize(size);
+        for (uint32_t i = 0; i < size; ++i) {
+            result[i] = serializer->template Read<char>();
+        }
+        return result;
+    }
+
+    std::vector<DynamicSlot> GetSortedSlots() {
+        std::vector<DynamicSlot> sorted;
+        sorted.reserve(dynamicSlots.size());
+        for (const auto& [localId, slot] : dynamicSlots) {
+            sorted.push_back(slot);
+        }
+        std::ranges::sort(sorted, [](const auto& lhs, const auto& rhs) {
+            return lhs.localId < rhs.localId;
+        });
+        return sorted;
+    }
+
+    void RecalculateNextDynamicLocalId() {
+        uint32_t localId = firstDynamicLocalId;
+        while (localId < 0x00ffffff) {
+            if (!reservedDynamicLocalIds.contains(localId) && !dynamicSlots.contains(localId)) {
+                nextDynamicLocalId = localId;
+                return;
+            }
+            ++localId;
+        }
+
+        nextDynamicLocalId = 0x00ffffff;
+    }
+
+    template <typename T>
+    void StoreRegistry(Serializer<T>* serializer) {
+        const auto sorted = GetSortedSlots();
+
+        std::unordered_map<std::string, uint32_t> ownerIndexes;
+        std::vector<std::string> owners;
+        for (const auto& slot : sorted) {
+            if (slot.owner.empty() || ownerIndexes.contains(slot.owner)) {
+                continue;
+            }
+
+            const auto index = static_cast<uint32_t>(owners.size());
+            ownerIndexes[slot.owner] = index;
+            owners.push_back(slot.owner);
+        }
+
+        serializer->template Write<uint32_t>(kRegistryMagic);
+        serializer->template Write<uint8_t>(kRegistrySchemaVersion);
+        WriteCompactString(serializer, dynamicPluginName);
+
+        WriteVarUInt(serializer, static_cast<uint32_t>(owners.size()));
+        for (const auto& owner : owners) {
+            WriteCompactString(serializer, owner);
+        }
+
+        WriteVarUInt(serializer, static_cast<uint32_t>(sorted.size()));
+        for (const auto& slot : sorted) {
+            WriteVarUInt(serializer, slot.localId);
+            WriteVarUInt(serializer, static_cast<uint32_t>(slot.formType));
+            WriteVarUInt(serializer, slot.owner.empty() ? 0 : ownerIndexes[slot.owner] + 1);
+            WriteCompactString(serializer, slot.key);
+        }
+    }
+
+    template <typename T>
+    bool RestoreRegistry(Serializer<T>* serializer) {
+        const auto magic = serializer->template Read<uint32_t>();
+        const auto version = serializer->template Read<uint8_t>();
+        if (magic != kRegistryMagic || version != kRegistrySchemaVersion) {
+            logger::warn("DPF registry binary cache is missing or unsupported; starting with empty schema {} registry", kRegistrySchemaVersion);
+            ResetDynamicState();
+            return SaveGlobalRegistry();
+        }
+
+        ResetDynamicState();
+        dynamicPluginName = ReadCompactString(serializer);
+
+        std::vector<std::string> owners;
+        const auto ownerCount = ReadVarUInt(serializer);
+        owners.reserve(ownerCount);
+        for (uint32_t i = 0; i < ownerCount; ++i) {
+            owners.push_back(ReadCompactString(serializer));
+        }
+
+        const auto slotCount = ReadVarUInt(serializer);
+        for (uint32_t i = 0; i < slotCount; ++i) {
+            const auto localId = ReadVarUInt(serializer);
+            const auto formType = static_cast<RE::FormType>(ReadVarUInt(serializer));
+            const auto ownerIndex = ReadVarUInt(serializer);
+            std::string owner;
+            if (ownerIndex > 0 && ownerIndex - 1 < owners.size()) {
+                owner = owners[ownerIndex - 1];
+            }
+            const auto key = ReadCompactString(serializer);
+
+            if (!RegisterDynamicSlot(localId, formType, owner, key)) {
+                logger::warn("Ignoring invalid DPF registry slot {:06X}", localId);
             }
         }
-        if (refreshGame) {
-            SaveCache();
-            UpdateId();
-            RE::PlayerCharacter::GetSingleton()->KillImmediate();
-        }
 
-        logger::info("CAllBACK LOADED");
-    }
-    catch (const std::exception&) {
-        logger::error("error loading");
+        RecalculateNextDynamicLocalId();
+        logger::info("Loaded DPF global registry with {} slots", dynamicSlots.size());
+        return true;
     }
 }
 
-std::string GetCacheFilePath()
-{
-    const std::string settingsFile = "Data/SKSE/Plugins/DPF_Settings.json";
-    const std::string defaultPath = "Data/SKSE/Plugins/[NoDelete] DPF/DynamicPersistentFormsCache.bin";
-
-    if (!fs::exists(settingsFile)) {
-        return defaultPath;
-    }
-
-    FILE* fp = fopen(settingsFile.c_str(), "rb");
-    if (!fp) return defaultPath;
-
-    char readBuffer[65536];
-    rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
-    rapidjson::Document d;
-    d.ParseStream(is);
-    fclose(fp);
-
-    if (!d.HasParseError() && d.HasMember("SavePath") && d["SavePath"].IsString()) {
-        std::string customDir = d["SavePath"].GetString();
-        return customDir + "/DynamicPersistentFormsCache.bin";
-    }
-
-    return defaultPath;
+std::string GetGlobalRegistryPath() {
+    return "Data/SKSE/Plugins/DPF_Cache.bin";
 }
 
-void LoadCache() {
-    logger::info("LOAD CACHE");
-
-    std::string path = GetCacheFilePath();
-
+bool LoadGlobalRegistry() {
+    std::lock_guard lock(registryMutex);
+    const auto path = GetGlobalRegistryPath();
     if (!fs::exists(path)) {
-        logger::info("Cache file not found. Creating initial file at: {}", path);
-        SaveCache(); 
-        return;
+        logger::info("DPF global registry not found at {}; starting empty", path);
+        ResetDynamicState();
+        return SaveGlobalRegistry();
     }
 
-    const auto fileReader = new FileReader(path, std::ios::in | std::ios::binary);
-    if (!fileReader->IsOpen()) {
-        logger::error("File not found");
-        return;
+    FileReader fileReader(path, std::ios::in | std::ios::binary);
+    if (!fileReader.IsOpen()) {
+        logger::error("Could not open DPF global registry at {}", path);
+        return false;
     }
-    RestoreAllFormRecords(fileReader);
 
-    UpdateId();
-
-    delete fileReader;
-
-    logger::info("Property data has been loaded from file successfully.");
+    return RestoreRegistry(&fileReader);
 }
 
-void SaveCache() {
-    logger::info("save cache");
-
-    std::string fullPath = GetCacheFilePath();
-    fs::path p(fullPath);
-
+bool SaveGlobalRegistry() {
+    const auto path = GetGlobalRegistryPath();
     try {
-        if (p.has_parent_path() && !fs::exists(p.parent_path())) {
-            fs::create_directories(p.parent_path());
+        const fs::path registryPath(path);
+        if (registryPath.has_parent_path()) {
+            fs::create_directories(registryPath.parent_path());
         }
 
-        const auto fileWriter = new FileWriter(fullPath,
-            std::ios::out | std::ios::binary | std::ios::trunc);
-
-        if (!fileWriter->IsOpen()) {
-            logger::error("Failed to open file for writing: {}", fullPath);
-            delete fileWriter;
-            return;
+        FileWriter fileWriter(path, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!fileWriter.IsOpen()) {
+            logger::error("Could not write DPF global registry at {}", path);
+            return false;
         }
 
-        StoreAllFormRecords(fileWriter);
-        delete fileWriter;
+        StoreRegistry(&fileWriter);
+        logger::debug("Saved DPF global registry to {}", path);
+        return true;
+    } catch (const std::exception& e) {
+        logger::error("Error saving DPF global registry: {}", e.what());
+        return false;
+    }
+}
 
-        logger::info("Property data has been written successfully to: {}", fullPath);
-    }
-    catch (const std::exception& e) {
-        logger::error("Error during save: {}", e.what());
-    }
+void SaveCallback(SKSE::SerializationInterface*) {
+    std::lock_guard lock(registryMutex);
+    SaveGlobalRegistry();
+}
+
+void LoadCallback(SKSE::SerializationInterface*) {
+    LoadGlobalRegistry();
 }

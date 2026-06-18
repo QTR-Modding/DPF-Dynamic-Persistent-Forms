@@ -1,29 +1,26 @@
 #pragma once
+
+#include "../public/DPFAPI.h"
 #include <mutex>
 
-namespace DPF {
-    // Defina um ID único para sua interface
-    constexpr auto InterfaceName = "DynamicPersistentForms";
-    constexpr uint32_t InterfaceVersion = 1;
-
-    class IDynamicPersistentForms {
-    public:
-        virtual ~IDynamicPersistentForms() = default;
-        virtual uint32_t GetVersion() const = 0;
-
-
-        virtual RE::TESForm* Create(RE::TESForm* baseItem) = 0;
-        virtual void Dispose(RE::TESForm* form) = 0;
-        virtual void Track(RE::TESForm* item) = 0;
-        virtual void UnTrack(RE::TESForm* item) = 0;
-    };
-}
-
 namespace Services {
-    // Mutex global para thread safety
     inline std::mutex serviceMutex;
 
     RE::TESForm* Create(RE::TESForm* baseItem);
+
+    RE::TESForm* CreateByType(uint32_t formType);
+
+    RE::TESForm* GetOrCreateByLocalId(uint32_t localId, uint32_t formType);
+
+    RE::TESForm* GetOrCreateByFormId(RE::FormID formId, uint32_t formType);
+
+    RE::TESForm* GetOrCreateByOwnerKey(const char* owner, const char* key, uint32_t formType, uint32_t* localId, bool* existed);
+
+    bool ReleaseByOwnerKey(const char* owner, const char* key);
+
+    bool ReleaseByLocalId(uint32_t localId, const char* owner);
+
+    uint32_t ReleaseOwner(const char* owner);
 
     void Track(RE::TESForm* baseItem);
 

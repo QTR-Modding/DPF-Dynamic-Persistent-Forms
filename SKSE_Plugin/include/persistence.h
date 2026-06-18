@@ -1,14 +1,12 @@
-#pragma once
-#include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
+﻿#pragma once
 #include <filesystem>
-#include <fstream>
+#include <string>
 
 namespace fs = std::filesystem;
 
-std::string GetCacheFilePath();
-void LoadCache();
-void SaveCache();
+bool LoadGlobalRegistry();
+bool SaveGlobalRegistry();
+std::string GetGlobalRegistryPath();
 
 void SaveCallback(SKSE::SerializationInterface* a_intfc);
 

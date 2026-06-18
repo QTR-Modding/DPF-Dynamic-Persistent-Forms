@@ -9,6 +9,37 @@ RE::TESForm* Create(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
     return Services::Create(baseItem);
 }
 
+RE::TESForm* CreateByType(RE::StaticFunctionTag*, const uint32_t formType) {
+    return Services::CreateByType(formType);
+}
+
+RE::TESForm* GetOrCreateByLocalId(RE::StaticFunctionTag*, const uint32_t localId, const uint32_t formType) {
+    return Services::GetOrCreateByLocalId(localId, formType);
+}
+
+RE::TESForm* GetOrCreateByFormId(RE::StaticFunctionTag*, RE::TESForm* formIdSource, const uint32_t formType) {
+    if (!formIdSource) {
+        return nullptr;
+    }
+    return Services::GetOrCreateByFormId(formIdSource->GetFormID(), formType);
+}
+
+RE::TESForm* GetOrCreateByOwnerKey(RE::StaticFunctionTag*, const RE::BSFixedString owner, const RE::BSFixedString key, const uint32_t formType) {
+    return Services::GetOrCreateByOwnerKey(owner.c_str(), key.c_str(), formType, nullptr, nullptr);
+}
+
+bool ReleaseByOwnerKey(RE::StaticFunctionTag*, const RE::BSFixedString owner, const RE::BSFixedString key) {
+    return Services::ReleaseByOwnerKey(owner.c_str(), key.c_str());
+}
+
+bool ReleaseByLocalId(RE::StaticFunctionTag*, const uint32_t localId, const RE::BSFixedString owner) {
+    return Services::ReleaseByLocalId(localId, owner.c_str());
+}
+
+uint32_t ReleaseOwner(RE::StaticFunctionTag*, const RE::BSFixedString owner) {
+    return Services::ReleaseOwner(owner.c_str());
+}
+
 void Track(RE::StaticFunctionTag*, RE::TESForm* baseItem) {
     Services::Track(baseItem);
 }
@@ -298,6 +329,13 @@ void LinkSoulGems(RE::StaticFunctionTag*, RE::TESSoulGem* empty, RE::TESSoulGem*
 
 bool PapyrusFunctions(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("Create", "DynamicPersistentForms", Create);
+    vm->RegisterFunction("CreateByType", "DynamicPersistentForms", CreateByType);
+    vm->RegisterFunction("GetOrCreateByLocalId", "DynamicPersistentForms", GetOrCreateByLocalId);
+    vm->RegisterFunction("GetOrCreateByFormId", "DynamicPersistentForms", GetOrCreateByFormId);
+    vm->RegisterFunction("GetOrCreateByOwnerKey", "DynamicPersistentForms", GetOrCreateByOwnerKey);
+    vm->RegisterFunction("ReleaseByOwnerKey", "DynamicPersistentForms", ReleaseByOwnerKey);
+    vm->RegisterFunction("ReleaseByLocalId", "DynamicPersistentForms", ReleaseByLocalId);
+    vm->RegisterFunction("ReleaseOwner", "DynamicPersistentForms", ReleaseOwner);
     vm->RegisterFunction("Dispose", "DynamicPersistentForms", Dispose);
     vm->RegisterFunction("Track", "DynamicPersistentForms", Track);
     vm->RegisterFunction("UnTrack", "DynamicPersistentForms", UnTrack);
@@ -329,3 +367,5 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine* vm) {
 
     return true;
 }
+
+
