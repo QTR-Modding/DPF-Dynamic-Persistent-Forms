@@ -142,6 +142,31 @@ void copyAppearence(RE::TESForm* source, RE::TESForm* target) {
 
 
 namespace {
+    bool EnsureFormInDataHandler(RE::TESForm* form) {
+        if (!form) {
+            return false;
+        }
+
+        auto* dataHandler = RE::TESDataHandler::GetSingleton();
+        if (!dataHandler) {
+            logger::warn("Could not register form {:08X} in TESDataHandler: data handler is unavailable", form->GetFormID());
+            return false;
+        }
+
+        auto& forms = dataHandler->GetFormArray(form->GetFormType());
+        if (std::ranges::find(forms, form) != forms.end()) {
+            return true;
+        }
+
+        if (!dataHandler->AddFormToDataHandler(form)) {
+            logger::warn("Could not register form {:08X} in TESDataHandler", form->GetFormID());
+            return false;
+        }
+
+        logger::debug("Registered form {:08X} in TESDataHandler", form->GetFormID());
+        return true;
+    }
+
     RE::TESForm* CreateFormInstance(const RE::FormType formType, const RE::FormID formId) {
         const auto factory = RE::IFormFactory::GetFormFactoryByType(formType);
         if (!factory) {
@@ -198,6 +223,7 @@ namespace {
                     static_cast<uint32_t>(existingForm->GetFormType()), static_cast<uint32_t>(formType));
                 return nullptr;
             }
+            EnsureFormInDataHandler(existingForm);
             if (!RegisterDynamicSlot(localId, formType, std::move(owner), std::move(key))) {
                 return nullptr;
             }
@@ -218,6 +244,7 @@ namespace {
         if (!newForm) {
             return nullptr;
         }
+        EnsureFormInDataHandler(newForm);
 
         auto* record = FormRecord::CreateNew(newForm, formType, formId);
         record->baseForm = baseItem;
